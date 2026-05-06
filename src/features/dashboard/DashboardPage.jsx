@@ -5,6 +5,10 @@ import PerformanceByDayChart from "../../components/dashboard/PerformanceByDayCh
 import InsightsPanel from "../../components/dashboard/InsightsPanel";
 import StatsBySetup from "../../components/dashboard/StatsBySetup";
 import StatsByTicker from "../../components/dashboard/StatsByTicker";
+import PerformanceByTimeChart from "../../components/dashboard/PerformanceByTimeChart";
+import LongVsShortStats from "../../components/dashboard/LongVsShortStats";
+import PerformanceByTickerChart from "../../components/dashboard/PerformanceByTickerChart";
+import PerformanceBySetupChart from "../../components/dashboard/PerformanceBySetupChart";
 import {
   calculateStats,
   buildEquityCurve,
@@ -13,6 +17,12 @@ import {
   generatePlainEnglishInsights,
   buildStatsBySetup,
   buildStatsByTicker,
+  calculateAverageHoldTime,
+  buildPerformanceByTimeOfDay,
+  getWorstTimeOfDay,
+  getBestTimeOfDay,
+  calculateProfitFactor,
+  buildLongVsShortPerformance,
 } from "../../lib/calculations";
 
 function DashboardPage({ trades }) {
@@ -23,15 +33,25 @@ function DashboardPage({ trades }) {
   const insights = generatePlainEnglishInsights(trades);
   const setupStatsData = buildStatsBySetup(trades);
   const tickerStatsData = buildStatsByTicker(trades);
+  const averageHoldTime = calculateAverageHoldTime(trades);
+  const performanceByTimeData = buildPerformanceByTimeOfDay(trades);
+  const worstTimeOfDay = getWorstTimeOfDay(trades);
+  const bestTimeOfDay = getBestTimeOfDay(trades);
+  const profitFactor = calculateProfitFactor(trades);
+  const longVsShortData = buildLongVsShortPerformance(trades);
 
 return (
   <div className="dashboard">
     <h2 style={{ marginBottom: "20px" }}>Dashboard</h2>
 
     {/* Stats */}
-    <section className="dashboard-section">
-      <StatsCards stats={stats} />
-    </section>
+    <StatsCards
+      stats={stats}
+      averageHoldTime={averageHoldTime}
+      bestTimeOfDay={bestTimeOfDay}
+      worstTimeOfDay={worstTimeOfDay}
+      profitFactor={profitFactor}
+    />
 
     <section className="dashboard-section">
       <StatsBySetup data={setupStatsData} />
@@ -39,6 +59,22 @@ return (
 
     <section className="dashboard-section">
       <StatsByTicker data={tickerStatsData} />
+    </section>
+
+    <section className="dashboard-section">
+      <PerformanceByTimeChart data={performanceByTimeData} />
+    </section>
+
+    <section className="dashboard-section">
+      <LongVsShortStats data={longVsShortData} />
+    </section>
+
+    <section className="dashboard-section">
+      <PerformanceByTickerChart data={tickerStatsData} />
+    </section>
+
+    <section className="dashboard-section">
+      <PerformanceBySetupChart data={setupStatsData} />
     </section>
 
     {/* Charts */}

@@ -54,3 +54,18 @@ body {
   padding: 8px;
   text-align: left;
 }
+
+.result-win {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.result-loss {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.result-breakeven {
+  color: #facc15;
+  font-weight: 700;
+}

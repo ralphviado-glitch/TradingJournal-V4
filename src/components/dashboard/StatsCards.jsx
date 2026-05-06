@@ -1,4 +1,10 @@
-function StatsCards({ stats }) {
+function StatsCards({
+  stats,
+  averageHoldTime,
+  bestTimeOfDay,
+  worstTimeOfDay,
+  profitFactor,
+}) {
   if (!stats || stats.totalTrades === 0) {
     return <p>No stats yet</p>;
   }
@@ -16,6 +22,10 @@ function StatsCards({ stats }) {
     { label: "Worst Stock", value: stats.worstStock },
     { label: "Longest Win Streak", value: stats.longestWinningStreak },
     { label: "Longest Loss Streak", value: stats.longestLosingStreak },
+    { label: "Average Hold Time", value: `${averageHoldTime} min` },
+    { label: "Best Time", value: bestTimeOfDay },
+    { label: "Worst Time", value: worstTimeOfDay },
+    { label: "Profit Factor", value: profitFactor },
   ];
 
   return (

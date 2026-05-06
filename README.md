@@ -1,6 +1,6 @@
-# 📊 Trading Journal V2
+# 📊 Trading Journal V3
 
-A web-based trading journal built with React that transforms raw broker data into structured trades, performance analytics, and actionable insights.
+A web-based trading journal built with React that transforms raw broker data into structured trades, advanced analytics, and actionable performance insights for active traders.
 
 ---
 
@@ -34,6 +34,7 @@ A web-based trading journal built with React that transforms raw broker data int
   * Exit time
   * Average entry/exit price
   * Total PnL
+  * Direction (Long / Short)
 
 ---
 
@@ -89,8 +90,12 @@ All filters dynamically update:
 * Win rate
 * Average winner / loser
 * Realized RRR
+* Profit factor
 * Best & worst stock
 * Winning & losing streaks
+* Average hold time
+* Best trading session
+* Worst trading session
 
 ---
 
@@ -99,6 +104,9 @@ All filters dynamically update:
 * Equity curve
 * Drawdown
 * Performance by day
+* Performance by time of day
+* Performance by ticker
+* Performance by setup
 
 ---
 
@@ -114,6 +122,12 @@ All filters dynamically update:
 * See which stocks you trade best
 * Identify weak tickers to avoid
 
+#### 📌 Long vs Short Analysis
+
+* Compare long and short trade performance
+* Analyze directional trading bias
+* Track win rate and PnL by side
+
 ---
 
 ### 💡 Smart Insights Engine
@@ -122,8 +136,8 @@ Automatically generates insights such as:
 
 * Best and worst setups
 * Strongest and weakest tickers
-* Risk-to-reward behavior
-* Losing streak warnings
+* Profit factor behavior
+* Trading session performance
 * Performance feedback
 
 ---
@@ -140,7 +154,7 @@ Automatically generates insights such as:
 
 ## 📁 Project Structure
 
-```
+```txt
 src/
   app/
   components/
@@ -162,7 +176,7 @@ npm run dev
 
 Open:
 
-```
+```txt
 http://localhost:5173
 ```
 
@@ -172,13 +186,13 @@ http://localhost:5173
 
 Supports broker order history CSV:
 
-```
+```txt
 Date/Time;Symbol;Side;Quantity;Price;Event
 ```
 
 Only rows with:
 
-```
+```txt
 Event = Filled
 ```
 
@@ -194,6 +208,7 @@ This project was built to:
 * Identify strengths and weaknesses
 * Improve decision-making through data
 * Build a structured trading review process
+* Develop a professional-grade trading analytics dashboard
 
 ---
 
@@ -213,10 +228,22 @@ This project was built to:
 * Stats by setup & ticker
 * Improved insights engine
 
-### 🔜 Version 3
+### ✅ Version 3
 
 * Time-of-day performance analysis
-* Session-based analytics (Open / Midday / Close)
+* Session-based analytics (Open / Midday / Power Hour)
+* Profit factor
+* Long vs short analysis
+* Performance charts by ticker and setup
+* Average hold time tracking
+
+### 🔜 Version 4
+
+* Trade review system
+* Screenshot uploads
+* Mistake tagging
+* Trade grading system (A+, A, B, C)
+* Daily review workflow
 
 ---
 

@@ -39,6 +39,8 @@ function TradeTable({ trades, onDeleteTrade, onUpdateTrade }) {
           <tr>
             <th>Date</th>
             <th>Ticker</th>
+            <th>Direction</th>
+            <th>Result</th>
             <th>Entry</th>
             <th>Exit</th>
             <th>Shares</th>
@@ -49,13 +51,19 @@ function TradeTable({ trades, onDeleteTrade, onUpdateTrade }) {
           </tr>
         </thead>
         <tbody>
-          {trades.map((trade, index) => {
+          {trades.map((trade) => {
             const isEditing = editingTradeId === trade.id;
+            const pnl = Number(trade.pnl || 0);
+            const result = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
 
             return (
               <tr key={trade.id}>
                 <td>{trade.date}</td>
                 <td>{trade.ticker}</td>
+                <td>{trade.direction || "N/A"}</td>
+                <td className={pnl > 0 ? "result-win" : pnl < 0 ? "result-loss" : "result-breakeven"}>
+                  {result}
+                </td>
                 <td>{trade.entry_price}</td>
                 <td>{trade.exit_price}</td>
                 <td>{trade.shares}</td>

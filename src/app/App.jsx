@@ -82,7 +82,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Trading Journal V2</h1>
+        <h1>Trading Journal V3</h1>
 
         <CSVUploader onDataUpload={setTrades} onClearData={handleClearData} />
 
