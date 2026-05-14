@@ -6,7 +6,7 @@ A web-based trading journal built with React that transforms raw broker data int
 
 ## 🖥️ Preview
 
-![Preview](./preview.png)
+![Preview](./preview1.png)
 
 ---
 
