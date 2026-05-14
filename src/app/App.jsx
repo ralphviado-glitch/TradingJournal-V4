@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import DashboardPage from "../features/dashboard/DashboardPage";
 import CSVUploader from "../components/trades/CSVUploader";
 import TradeTable from "../components/trades/TradeTable";
+import TradeSummary from "../components/trades/TradeSummary";
+import OrderBreakdown from "../components/trades/OrderBreakdown";
 
 function App() {
   const [selectedTicker, setSelectedTicker] = useState("ALL");
@@ -9,6 +11,7 @@ function App() {
   const [selectedResult, setSelectedResult] = useState("ALL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedTrade, setSelectedTrade] = useState(null);
 
   const [trades, setTrades] = useState(() => {
     try {
@@ -141,7 +144,15 @@ function App() {
         trades={filteredTrades}
         onDeleteTrade={handleDeleteTrade}
         onUpdateTrade={handleUpdateTrade}
+        onSelectTrade={setSelectedTrade}
       />
+
+      {selectedTrade ? (
+        <section className="dashboard-section">
+          <TradeSummary trade={selectedTrade} />
+          <OrderBreakdown orders={selectedTrade.orders} />
+        </section>
+      ) : null}
 
       <DashboardPage trades={filteredTrades} />
     </div>

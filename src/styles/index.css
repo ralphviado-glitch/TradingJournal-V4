@@ -24,6 +24,14 @@ body {
   margin-bottom: 32px;
 }
 
+.trade-screenshot-thumb {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
 .stats-grid {
   display: flex;
   flex-wrap: wrap;
@@ -39,20 +47,48 @@ body {
 }
 
 .trade-table-wrapper {
-  margin-top: 24px;
-  overflow-x: auto;
+  margin: 24px auto;
+  width: fit-content;
+  border: 1px solid #333;
+  border-radius: 8px;
 }
 
 .trade-table {
-  width: 100%;
+  width: auto;
   border-collapse: collapse;
+  font-size: 12px;
 }
 
 .trade-table th,
 .trade-table td {
   border: 1px solid #333;
-  padding: 8px;
+  padding: 4px;
   text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.trade-table th {
+  background-color: #111;
+}
+
+.trade-table button {
+  font: inherit;
+  margin: 0 6px 6px 0;
+}
+
+.trade-table input,
+.trade-table select,
+.trade-table textarea {
+  box-sizing: border-box;
+  font: inherit;
+  min-width: 140px;
+}
+
+.trade-table textarea {
+  min-height: 64px;
+  min-width: 220px;
+  white-space: normal;
 }
 
 .result-win {

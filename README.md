@@ -1,6 +1,6 @@
-# 📊 Trading Journal V3
+# 📊 Trading Journal V4
 
-A web-based trading journal built with React that transforms raw broker data into structured trades, advanced analytics, and actionable performance insights for active traders.
+A web-based trading journal built with React that transforms raw broker data into structured trades, advanced analytics, and a comprehensive trade review system for active traders.
 
 ---
 
@@ -59,6 +59,10 @@ A web-based trading journal built with React that transforms raw broker data int
 
   * Setup
   * Notes
+  * Grade
+  * Mistake tags
+  * Emotion tags
+  * Rules-followed checklist
 * Delete individual trades
 * Clean and flexible journaling workflow
 
@@ -130,15 +134,63 @@ All filters dynamically update:
 
 ---
 
+### 📝 Trade Review System
+
+#### 🔍 Trade Detail View
+
+* View a detailed summary of each trade
+* Inspect entry and exit information
+* Review all individual fills and scale-outs
+
+#### 🏆 Trade Grading
+
+* Grade trades using:
+
+  * A+
+  * A
+  * B
+  * C
+  * D
+
+#### 🏷️ Mistake Tagging
+
+* Record execution mistakes such as:
+
+  * Late Entry
+  * FOMO
+  * Overtrading
+  * Chasing
+
+#### 😊 Emotion Tracking
+
+* Track emotional states during trades:
+
+  * Calm
+  * Hesitant
+  * Fearful
+  * Confident
+
+#### ✅ Rules Checklist
+
+* Mark whether the trade followed your trading plan
+
+#### 🖼️ Screenshot Upload
+
+* Upload and store chart screenshots
+* Preview screenshots directly in the journal
+
+---
+
 ### 💡 Smart Insights Engine
 
 Automatically generates insights such as:
 
 * Best and worst setups
 * Strongest and weakest tickers
-* Profit factor behavior
+* Risk-to-reward behavior
 * Trading session performance
 * Performance feedback
+* Losing streak warnings
 
 ---
 
@@ -149,6 +201,7 @@ Automatically generates insights such as:
 * **Recharts** (data visualization)
 * **PapaParse** (CSV parsing)
 * **CSS** (custom styling)
+* **FileReader API** (image uploads)
 
 ---
 
@@ -209,6 +262,7 @@ This project was built to:
 * Improve decision-making through data
 * Build a structured trading review process
 * Develop a professional-grade trading analytics dashboard
+* Combine quantitative analytics with qualitative trade reviews
 
 ---
 
@@ -237,13 +291,23 @@ This project was built to:
 * Performance charts by ticker and setup
 * Average hold time tracking
 
-### 🔜 Version 4
+### ✅ Version 4
 
-* Trade review system
-* Screenshot uploads
+* Trade detail view
+* Full order breakdown
+* Trade grading system
 * Mistake tagging
-* Trade grading system (A+, A, B, C)
-* Daily review workflow
+* Emotion tracking
+* Rules-followed checklist
+* Screenshot upload and preview
+
+### 🔜 Version 5
+
+* Performance by trade grade
+* Most common mistake analysis
+* Emotion-based analytics
+* Rules-followed win rate
+* Review scoring dashboard
 
 ---
 
