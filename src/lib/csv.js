@@ -1,33 +1,4 @@
-function convertToNewYorkTime(dateTimeString) {
-  if (!dateTimeString) {
-    return { date: "", time: "" };
-  }
-
-  const localDate = new Date(dateTimeString);
-
-  if (Number.isNaN(localDate.getTime())) {
-    return { date: "", time: "" };
-  }
-
-  const nyFormatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  const parts = nyFormatter.formatToParts(localDate);
-  const get = (type) => parts.find((part) => part.type === type)?.value || "";
-
-  return {
-    date: `${get("year")}-${get("month")}-${get("day")}`,
-    time: `${get("hour")}:${get("minute")} ${get("dayPeriod")}`.trim(),
-  };
-}
+import { tradeThePoolTimestampToNewYork } from "./marketTime";
 
 function cleanNumber(value) {
   if (value === null || value === undefined || value === "") {
@@ -39,6 +10,7 @@ function cleanNumber(value) {
       .replace(/,/g, "")
       .replace("USD", "")
       .replace("$", "")
+      .replace(/[()]/g, "")
       .trim()
   );
 }
@@ -91,12 +63,14 @@ export function normalizeBrokerOrders(rows = []) {
   return rows
     .map((row) => {
       const dateTime = cleanText(row["Date/Time"]);
-      const { date, time } = convertToNewYorkTime(dateTime);
+      const normalizedTimestamp = tradeThePoolTimestampToNewYork(dateTime);
       const price = cleanNumber(row.Price) || cleanNumber(row["Stop price"]);
 
       return {
-        date,
-        time,
+        date: normalizedTimestamp?.date || "",
+        time: normalizedTimestamp?.time || "",
+        timestamp: normalizedTimestamp?.timestamp ?? Number.NaN,
+        timestampUtc: normalizedTimestamp?.timestampUtc || "",
         ticker: cleanText(row.Symbol),
         side: cleanText(row.Side),
         type: cleanText(row.Type),
@@ -108,6 +82,7 @@ export function normalizeBrokerOrders(rows = []) {
     .filter((order) => {
       return (
         order.event.toLowerCase() === "filled" &&
+        !Number.isNaN(order.timestamp) &&
         order.ticker &&
         order.side &&
         order.quantity > 0 &&
@@ -116,9 +91,91 @@ export function normalizeBrokerOrders(rows = []) {
     });
 }
 
+function getOrderSignedQuantity(order) {
+  const side = order.side.toLowerCase();
+
+  if (side.includes("buy")) {
+    return order.quantity;
+  }
+
+  if (side.includes("sell") || side.includes("short")) {
+    return -order.quantity;
+  }
+
+  return 0;
+}
+
+function createActiveTrade(order, signedQuantity) {
+  const isLong = signedQuantity > 0;
+  const quantity = Math.abs(signedQuantity);
+
+  return {
+    date: order.date,
+    ticker: order.ticker,
+    direction: isLong ? "Long" : "Short",
+    entry_time: order.time,
+    exit_time: "",
+    entry_price: order.price,
+    exit_price: 0,
+    shares: quantity,
+    pnl: isLong ? -order.price * quantity : order.price * quantity,
+    setup: "Unclassified",
+    notes: "",
+    grade: "",
+    mistakeTags: [],
+    emotionTags: [],
+    rulesFollowed: null,
+    screenshot: "",
+    risk: 0,
+    orders: [{ ...order, quantity }],
+    openQuantity: signedQuantity,
+    entryValue: order.price * quantity,
+    exitValue: 0,
+    exitShares: 0,
+  };
+}
+
+function addToTradeEntry(trade, order, quantity) {
+  const entryDirection = trade.direction === "Long" ? 1 : -1;
+
+  trade.orders.push({ ...order, quantity });
+  trade.openQuantity += entryDirection * quantity;
+  trade.shares += quantity;
+  trade.entryValue += order.price * quantity;
+  trade.entry_price = Number((trade.entryValue / trade.shares).toFixed(2));
+  trade.pnl += trade.direction === "Long" ? -order.price * quantity : order.price * quantity;
+}
+
+function closeTradeQuantity(trade, order, quantity) {
+  const closeDirection = trade.direction === "Long" ? -1 : 1;
+
+  trade.orders.push({ ...order, quantity });
+  trade.openQuantity += closeDirection * quantity;
+  trade.exitValue += order.price * quantity;
+  trade.exitShares += quantity;
+  trade.exit_time = order.time;
+  trade.pnl += trade.direction === "Long" ? order.price * quantity : -order.price * quantity;
+}
+
+function finalizeTrade(trade) {
+  trade.exit_price =
+    trade.exitShares === 0
+      ? 0
+      : Number((trade.exitValue / trade.exitShares).toFixed(2));
+
+  trade.pnl = Number(trade.pnl.toFixed(2));
+
+  delete trade.openQuantity;
+  delete trade.entryValue;
+  delete trade.exitValue;
+  delete trade.exitShares;
+
+  return trade;
+}
+
 export function groupOrdersIntoTrades(orders = []) {
   const sortedOrders = [...orders].sort((a, b) => {
-    return new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`);
+    return a.timestamp - b.timestamp;
   });
 
   const activeTrades = new Map();
@@ -126,102 +183,37 @@ export function groupOrdersIntoTrades(orders = []) {
 
   sortedOrders.forEach((order) => {
     const key = order.ticker;
-    const existingTrade = activeTrades.get(key);
-    const isBuy = order.side.toLowerCase() === "buy";
-    const isSell = order.side.toLowerCase() === "sell";
+    let signedQuantity = getOrderSignedQuantity(order);
 
-    if (!existingTrade) {
-      activeTrades.set(key, {
-        date: order.date,
-        ticker: order.ticker,
-        direction: isBuy ? "Long" : "Short",
-        entry_time: order.time,
-        exit_time: "",
-        entry_price: order.price,
-        exit_price: 0,
-        shares: order.quantity,
-        pnl: isBuy
-          ? -order.price * order.quantity
-          : order.price * order.quantity,
-        setup: "Unclassified",
-        notes: "",
-        grade: "",
-        mistakeTags: [],
-        emotionTags: [],
-        rulesFollowed: false,
-        screenshot: "",
-        risk: 0,
-        orders: [order],
-        openQuantity: isBuy ? order.quantity : -order.quantity,
-        entryValue: order.price * order.quantity,
-        exitValue: 0,
-        exitShares: 0,
-      });
+    while (signedQuantity !== 0) {
+      const existingTrade = activeTrades.get(key);
 
-      return;
-    }
-
-    existingTrade.orders.push(order);
-
-    if (isBuy) {
-      existingTrade.pnl -= order.price * order.quantity;
-    }
-
-    if (isSell) {
-      existingTrade.pnl += order.price * order.quantity;
-    }
-
-    if (existingTrade.direction === "Long") {
-      if (isBuy) {
-        existingTrade.openQuantity += order.quantity;
-        existingTrade.shares += order.quantity;
-        existingTrade.entryValue += order.price * order.quantity;
-        existingTrade.entry_price = Number(
-          (existingTrade.entryValue / existingTrade.shares).toFixed(2)
-        );
+      if (!existingTrade) {
+        activeTrades.set(key, createActiveTrade(order, signedQuantity));
+        signedQuantity = 0;
+        continue;
       }
 
-      if (isSell) {
-        existingTrade.openQuantity -= order.quantity;
-        existingTrade.exitValue += order.price * order.quantity;
-        existingTrade.exitShares += order.quantity;
-        existingTrade.exit_time = order.time;
-      }
-    }
+      const sameDirection = Math.sign(existingTrade.openQuantity) === Math.sign(signedQuantity);
 
-    if (existingTrade.direction === "Short") {
-      if (isSell) {
-        existingTrade.openQuantity -= order.quantity;
-        existingTrade.shares += order.quantity;
-        existingTrade.entryValue += order.price * order.quantity;
-        existingTrade.entry_price = Number(
-          (existingTrade.entryValue / existingTrade.shares).toFixed(2)
-        );
+      if (sameDirection) {
+        addToTradeEntry(existingTrade, order, Math.abs(signedQuantity));
+        signedQuantity = 0;
+        continue;
       }
 
-      if (isBuy) {
-        existingTrade.openQuantity += order.quantity;
-        existingTrade.exitValue += order.price * order.quantity;
-        existingTrade.exitShares += order.quantity;
-        existingTrade.exit_time = order.time;
+      const closingQuantity = Math.min(
+        Math.abs(existingTrade.openQuantity),
+        Math.abs(signedQuantity)
+      );
+
+      closeTradeQuantity(existingTrade, order, closingQuantity);
+      signedQuantity += signedQuantity > 0 ? -closingQuantity : closingQuantity;
+
+      if (Math.abs(existingTrade.openQuantity) < 0.0000001) {
+        trades.push(finalizeTrade(existingTrade));
+        activeTrades.delete(key);
       }
-    }
-
-    if (existingTrade.openQuantity === 0) {
-      existingTrade.exit_price =
-        existingTrade.exitShares === 0
-          ? 0
-          : Number((existingTrade.exitValue / existingTrade.exitShares).toFixed(2));
-
-      existingTrade.pnl = Number(existingTrade.pnl.toFixed(2));
-
-      delete existingTrade.openQuantity;
-      delete existingTrade.entryValue;
-      delete existingTrade.exitValue;
-      delete existingTrade.exitShares;
-
-      trades.push(existingTrade);
-      activeTrades.delete(key);
     }
   });
 

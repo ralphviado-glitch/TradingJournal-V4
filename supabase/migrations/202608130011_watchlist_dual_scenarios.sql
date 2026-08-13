@@ -1,0 +1,37 @@
+-- Dual-scenario watchlist plans and immutable trade plan snapshots.
+alter table public.daily_watchlist add column if not exists overall_rating text;
+alter table public.daily_watchlist add column if not exists weekly_bias text;
+alter table public.daily_watchlist add column if not exists intraday_bias text;
+alter table public.daily_watchlist add column if not exists relative_strength text;
+alter table public.daily_watchlist add column if not exists confidence text;
+alter table public.daily_watchlist add column if not exists long_scenario_enabled boolean;
+alter table public.daily_watchlist add column if not exists long_trigger text;
+alter table public.daily_watchlist add column if not exists long_setup text;
+alter table public.daily_watchlist add column if not exists long_target text;
+alter table public.daily_watchlist add column if not exists long_invalidation text;
+alter table public.daily_watchlist add column if not exists short_scenario_enabled boolean;
+alter table public.daily_watchlist add column if not exists short_trigger text;
+alter table public.daily_watchlist add column if not exists short_setup text;
+alter table public.daily_watchlist add column if not exists short_target text;
+alter table public.daily_watchlist add column if not exists short_invalidation text;
+alter table public.daily_watchlist add column if not exists bottom_line text;
+
+alter table public.trades add column if not exists planned_overall_rating text;
+alter table public.trades add column if not exists planned_weekly_bias text;
+alter table public.trades add column if not exists planned_intraday_bias text;
+alter table public.trades add column if not exists planned_relative_strength text;
+alter table public.trades add column if not exists planned_confidence text;
+alter table public.trades add column if not exists planned_long_scenario_enabled boolean;
+alter table public.trades add column if not exists planned_long_trigger text;
+alter table public.trades add column if not exists planned_long_setup text;
+alter table public.trades add column if not exists planned_long_target text;
+alter table public.trades add column if not exists planned_long_invalidation text;
+alter table public.trades add column if not exists planned_short_scenario_enabled boolean;
+alter table public.trades add column if not exists planned_short_trigger text;
+alter table public.trades add column if not exists planned_short_setup text;
+alter table public.trades add column if not exists planned_short_target text;
+alter table public.trades add column if not exists planned_short_invalidation text;
+alter table public.trades add column if not exists planned_bottom_line text;
+alter table public.trades add column if not exists preferred_direction_matched boolean;
+alter table public.trades add column if not exists planned_scenario_matched boolean;
+alter table public.trades add column if not exists plan_direction_classification text;

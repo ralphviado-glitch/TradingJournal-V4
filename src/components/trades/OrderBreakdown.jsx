@@ -6,7 +6,9 @@ function OrderBreakdown({ orders }) {
   return (
     <div className="chart-card">
       <h3>Order Breakdown</h3>
+      <p className="field-helper">Times shown in New York (ET)</p>
 
+      <div className="order-breakdown-table">
       <table className="trade-table">
         <thead>
           <tr>
@@ -32,6 +34,16 @@ function OrderBreakdown({ orders }) {
           ))}
         </tbody>
       </table>
+      </div>
+      <div className="order-breakdown-cards">
+        {orders.map((order, index) => (
+          <div className="order-breakdown-card" key={index}>
+            <strong>{order.side} {order.quantity} @ {order.price}</strong>
+            <span>{order.date} {order.time}</span>
+            <small>{order.event}</small>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
