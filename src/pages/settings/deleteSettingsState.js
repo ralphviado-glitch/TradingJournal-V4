@@ -4,6 +4,11 @@ export function canConfirmDelete(value) {
   return value === DELETE_ALL_TRADES_CONFIRMATION;
 }
 
+export async function executeConfirmedTradeDeletion(confirmation, deleteWorkflow) {
+  if (!canConfirmDelete(confirmation)) return null;
+  return deleteWorkflow();
+}
+
 export const initialDeleteState = { isOpen: false, isDeleting: false, result: null, error: "" };
 
 export function deleteStateReducer(state, action) {

@@ -1,4 +1,5 @@
 import { EXIT_EFFICIENCY_BUCKETS, ROOM_R_BUCKETS, RULE_ADHERENCE_BUCKETS, bucketValue, getSampleSizeLabel } from "./analyticsBuckets";
+import { getAuthoritativePnl } from "../tradePnl";
 
 export const GOOD_PROCESS_RULE = {
   setupQualities: ["A+", "A"],
@@ -23,13 +24,13 @@ export function averageOf(trades, field) {
 }
 
 export function summarizeTrades(trades = []) {
-  const pnlValues = trades.map((trade) => numberOrNull(trade.pnl)).filter((value) => value !== null);
+  const pnlValues = trades.map((trade) => numberOrNull(getAuthoritativePnl(trade))).filter((value) => value !== null);
   const wins = pnlValues.filter((value) => value > 0);
   const losses = pnlValues.filter((value) => value < 0);
   const grossProfit = wins.reduce((sum, value) => sum + value, 0);
   const grossLoss = losses.reduce((sum, value) => sum + value, 0);
   const realizedRValues = trades.map((trade) => {
-    const pnl = numberOrNull(trade.pnl);
+    const pnl = numberOrNull(getAuthoritativePnl(trade));
     const risk = numberOrNull(trade.actual_risk ?? trade.planned_risk ?? trade.risk);
     return pnl !== null && risk !== null && risk > 0 ? pnl / risk : null;
   }).filter((value) => value !== null);
@@ -111,7 +112,7 @@ export function buildSetupExecutionMatrix(trades) {
 export function classifyProcessOutcome(trade) {
   const hasProcessData = Boolean(trade.setup_quality && trade.execution_quality);
   const goodProcess = hasProcessData && GOOD_PROCESS_RULE.setupQualities.includes(trade.setup_quality) && GOOD_PROCESS_RULE.executionQualities.includes(trade.execution_quality);
-  const pnl = numberOrNull(trade.pnl);
+  const pnl = numberOrNull(getAuthoritativePnl(trade));
   if (!hasProcessData || pnl === null || pnl === 0) return "Unclassified";
   return `${goodProcess ? "Good Process" : "Poor Process"} / ${pnl > 0 ? "Win" : "Loss"}`;
 }
@@ -132,7 +133,7 @@ export function buildRuleViolationAnalysis(trades) {
   }));
   return [...violations.entries()].map(([category, matching]) => {
     const stats = summarizeTrades(matching);
-    const losingPnl = matching.map((trade) => numberOrNull(trade.pnl)).filter((pnl) => pnl !== null && pnl < 0).reduce((sum, pnl) => sum + pnl, 0);
+    const losingPnl = matching.map((trade) => numberOrNull(getAuthoritativePnl(trade))).filter((pnl) => pnl !== null && pnl < 0).reduce((sum, pnl) => sum + pnl, 0);
     return { category, ...stats, totalLosingPnl: rounded(losingPnl) };
   });
 }

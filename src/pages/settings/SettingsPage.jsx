@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { deleteAllTrades } from "../../lib/tradeService";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -7,14 +7,32 @@ import {
   canConfirmDelete,
   DELETE_ALL_TRADES_CONFIRMATION,
   deleteStateReducer,
+  executeConfirmedTradeDeletion,
   initialDeleteState,
 } from "./deleteSettingsState";
+import { fetchImportPreferences, saveImportPreferences } from "../../lib/importPreferencesService";
 
 function SettingsPage() {
   const [state, dispatch] = useReducer(deleteStateReducer, initialDeleteState);
   const [confirmation, setConfirmation] = useState("");
   const deletionLock = useRef(false);
   const confirmationInputRef = useRef(null);
+  const [ttpAccount, setTtpAccount] = useState("");
+  const [preferenceStatus, setPreferenceStatus] = useState({ type: "loading", message: "Loading import preferences..." });
+
+  useEffect(() => {
+    fetchImportPreferences().then(({ preferredTtpAccount }) => {
+      setTtpAccount(preferredTtpAccount || ""); setPreferenceStatus({ type: "idle", message: "" });
+    }).catch((error) => setPreferenceStatus({ type: "error", message: error.message || "Could not load import preferences." }));
+  }, []);
+
+  const handleSaveImportPreferences = async (event) => {
+    event.preventDefault(); setPreferenceStatus({ type: "loading", message: "Saving import preferences..." });
+    try {
+      const saved = await saveImportPreferences({ preferredTtpAccount: ttpAccount });
+      setTtpAccount(saved.preferredTtpAccount || ""); setPreferenceStatus({ type: "success", message: "Import preferences saved." });
+    } catch (error) { setPreferenceStatus({ type: "error", message: error.message || "Could not save import preferences." }); }
+  };
 
   const closeModal = () => {
     if (state.isDeleting) return;
@@ -28,7 +46,7 @@ function SettingsPage() {
     dispatch({ type: "start" });
 
     try {
-      const result = await deleteAllTrades();
+      const result = await executeConfirmedTradeDeletion(confirmation, deleteAllTrades);
       setConfirmation("");
       dispatch({ type: "success", result });
       window.dispatchEvent(new CustomEvent("trades:deleted"));
@@ -45,8 +63,20 @@ function SettingsPage() {
         <h1>Settings</h1>
       </header>
 
-      <section aria-labelledby="data-management-heading">
-        <h2 id="data-management-heading" className="settings-section-title">Data Management</h2>
+      <section aria-labelledby="import-preferences-heading">
+        <h2 id="import-preferences-heading" className="settings-section-title">Import Preferences</h2>
+        <Card>
+          <form onSubmit={handleSaveImportPreferences} className="settings-preferences-form">
+            <label htmlFor="ttp-account-id">Trade The Pool Account ID<input id="ttp-account-id" value={ttpAccount} onChange={(event) => setTtpAccount(event.target.value)} autoComplete="off" /></label>
+            <p>Orders History exports may contain multiple Trade The Pool account streams. The journal will reconstruct trades only from this account.</p>
+            <Button type="submit" disabled={preferenceStatus.type === "loading"}>Save Import Preferences</Button>
+            {preferenceStatus.message ? <p className={`status-message ${preferenceStatus.type}`} role="status">{preferenceStatus.message}</p> : null}
+          </form>
+        </Card>
+      </section>
+
+      <section aria-labelledby="danger-zone-heading">
+        <h2 id="danger-zone-heading" className="settings-section-title">Danger Zone</h2>
         <Card className="settings-danger-card">
           <div>
             <h3>Delete All Trades</h3>

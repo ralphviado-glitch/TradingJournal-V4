@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import SettingsPage from "./SettingsPage";
 import {
   canConfirmDelete,
   deleteStateReducer,
+  executeConfirmedTradeDeletion,
   initialDeleteState,
 } from "./deleteSettingsState";
 
 describe("Settings delete confirmation", () => {
+  it("renders Import Preferences and the Delete All Trades danger action without a full-height nested form", () => {
+    const markup = renderToStaticMarkup(createElement(SettingsPage));
+    expect(markup).toContain("Import Preferences");
+    expect(markup).toContain("Danger Zone");
+    expect(markup).toContain("Delete All Trades");
+    expect(markup).toContain('class="settings-preferences-form"');
+    expect(markup).not.toContain('<form class="page-stack"');
+  });
+
   it("requires the confirmation text to match exactly", () => {
     expect(canConfirmDelete("DELETE ALL TRADES")).toBe(true);
     expect(canConfirmDelete("delete all trades")).toBe(false);
@@ -15,6 +29,14 @@ describe("Settings delete confirmation", () => {
   it("cancels without starting deletion", () => {
     const open = deleteStateReducer(initialDeleteState, { type: "open" });
     expect(deleteStateReducer(open, { type: "cancel" })).toEqual(initialDeleteState);
+  });
+
+  it("calls the existing deletion workflow only after exact confirmation", async () => {
+    const deletionWorkflow = vi.fn(async () => ({ deletedTrades: 3 }));
+    await expect(executeConfirmedTradeDeletion("wrong", deletionWorkflow)).resolves.toBeNull();
+    expect(deletionWorkflow).not.toHaveBeenCalled();
+    await expect(executeConfirmedTradeDeletion("DELETE ALL TRADES", deletionWorkflow)).resolves.toEqual({ deletedTrades: 3 });
+    expect(deletionWorkflow).toHaveBeenCalledOnce();
   });
 
   it("prevents cancellation or a second state transition while deleting", () => {

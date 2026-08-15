@@ -7,7 +7,7 @@ import { navItems } from "../components/layout/appNavigation";
 
 describe("pre-market navigation and persistence", () => {
   it("uses the clarified navigation without a Today label", () => {
-    expect(navItems.map((item) => item.label)).toEqual(["Dashboard", "Pre-Market Plan", "Plans", "Journal", "Analytics", "Settings"]);
+    expect(navItems.map((item) => item.label)).toEqual(["Dashboard", "Pre-Market Plan", "Plans", "Journal", "Calendar", "Analytics", "Settings"]);
     expect(navItems.some((item) => item.label === "Today")).toBe(false);
   });
 

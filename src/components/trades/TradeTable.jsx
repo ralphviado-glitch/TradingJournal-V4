@@ -14,6 +14,7 @@ import {
   RULE_VIOLATION_OPTIONS, THREE_STATE_FIELDS, deriveRoomFields,
 } from "../../lib/breakRetestReview";
 import { getTradeReviewCompleteness } from "../../lib/workflow/reviewCompleteness";
+import { getAuthoritativePnl } from "../../lib/tradePnl";
 
 const classificationFields = [
   ["setup", "Setup", "text"],
@@ -60,6 +61,7 @@ function createEditDraft(trade) {
     emotionTags: (trade.emotionTags || []).join(", "),
     rulesFollowed: trade.rulesFollowed === true ? "true" : trade.rulesFollowed === false ? "false" : "",
     notes: trade.notes || "",
+    fees: trade.fees ?? "",
     screenshotFile: null,
     removeScreenshot: false,
     setup_quality: trade.setup_quality || "",
@@ -155,6 +157,7 @@ function TradeTable({
           .filter(Boolean),
         rulesFollowed: editDraft.rulesFollowed,
         notes: editDraft.notes,
+        fees: editDraft.fees,
         screenshotFile: editDraft.screenshotFile,
         removeScreenshot: editDraft.removeScreenshot,
         setup_quality: editDraft.setup_quality,
@@ -183,7 +186,7 @@ function TradeTable({
   };
 
   const renderResult = (trade) => {
-    const pnl = Number(trade.pnl || 0);
+    const pnl = Number(getAuthoritativePnl(trade) || 0);
     if (pnl > 0) return <Badge tone="profit">Win</Badge>;
     if (pnl < 0) return <Badge tone="loss">Loss</Badge>;
     return <Badge tone="warning">Breakeven</Badge>;
@@ -214,7 +217,9 @@ function TradeTable({
               <th>Entry</th>
               <th>Exit</th>
               <th>Shares</th>
-              <th>PnL</th>
+              <th>Gross P&amp;L</th>
+              <th>Fee</th>
+              <th>Net P&amp;L</th>
               <th>Setup</th>
               <th>Grade</th>
               <th>Exit Efficiency</th>
@@ -233,9 +238,9 @@ function TradeTable({
                 <td>{trade.entry_price}</td>
                 <td>{trade.exit_price}</td>
                 <td>{trade.shares}</td>
-                <td className={Number(trade.pnl || 0) >= 0 ? "result-win" : "result-loss"}>
-                  {trade.pnl}
-                </td>
+                <td>{trade.gross_pnl ?? trade.pnl}</td>
+                <td>{trade.fees == null ? "N/A" : trade.fees}</td>
+                <td className={Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}>{getAuthoritativePnl(trade) ?? "N/A"}</td>
                 <td>{trade.setup || "Unclassified"}</td>
                 <td>{trade.grade || "-"}</td>
                 <td>{trade.exit_efficiency == null ? "-" : `${trade.exit_efficiency}%`}</td>
@@ -462,6 +467,7 @@ function TradeTable({
 
               <div className="form-section">
                 <h3>Notes</h3>
+                <label>Broker Fee (optional)<input type="number" min="0" step="0.01" value={editDraft.fees} onChange={(event) => updateDraft("fees", event.target.value)} placeholder="N/A" /></label>
                 <label>
                   Notes
                   <textarea value={editDraft.notes} onChange={(event) => updateDraft("notes", event.target.value)} />

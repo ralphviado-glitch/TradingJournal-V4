@@ -9,6 +9,7 @@ import { calculatePositionPercent, deriveScaleOutFromOrders, validateTradeManage
 import { deriveRoomFields, normalizeThreeState, THREE_STATE_FIELDS, validateBreakRetestReview } from "./breakRetestReview";
 import { getTradeReviewCompleteness } from "./workflow/reviewCompleteness";
 import { validateWorkflowStatuses } from "./workflow/workflowStatus";
+import { applyFees } from "./tradePnl";
 
 const executionAnalysisFields = [
   "planned_entry",
@@ -229,7 +230,7 @@ export function filterDuplicateTradesForImport(candidateTrades = [], existingTra
   };
 }
 
-function mapTradeToInsertRow(trade, userId) {
+export function mapTradeToInsertRow(trade, userId) {
   const derivedManagement = deriveScaleOutFromOrders(trade);
   const row = {
     user_id: userId,
@@ -242,6 +243,10 @@ function mapTradeToInsertRow(trade, userId) {
     exit_price: trade.exit_price,
     shares: trade.shares,
     pnl: trade.pnl,
+    gross_pnl: trade.gross_pnl ?? null,
+    fees: trade.fees ?? null,
+    net_pnl: trade.net_pnl ?? null,
+    pnl_source: trade.pnl_source || null,
     risk: trade.risk || 0,
     setup: trade.setup || "Unclassified",
     notes: trade.notes || "",
@@ -360,6 +365,11 @@ export function buildTradeUpdatePayload(updates = {}) {
   if ("rulesFollowed" in updates) payload.rules_followed = updates.rulesFollowed === true || updates.rulesFollowed === "true" ? true : updates.rulesFollowed === false || updates.rulesFollowed === "false" ? false : null;
   if ("screenshotPath" in updates) payload.screenshot_path = updates.screenshotPath || null;
   if ("screenshotUrl" in updates) payload.screenshot_url = updates.screenshotUrl || null;
+  if ("gross_pnl" in updates) payload.gross_pnl = parseExecutionNumber(updates.gross_pnl);
+  if ("fees" in updates) payload.fees = parseExecutionNumber(updates.fees);
+  if ("net_pnl" in updates) payload.net_pnl = parseExecutionNumber(updates.net_pnl);
+  if ("pnl" in updates) payload.pnl = parseExecutionNumber(updates.pnl);
+  if ("pnl_source" in updates) payload.pnl_source = updates.pnl_source || null;
 
   executionAnalysisFields.forEach((field) => {
     if (field in updates) {
@@ -412,6 +422,7 @@ export async function updateTrade(tradeId, updates = {}) {
   }
 
   const normalizedUpdates = { ...updates };
+  if ("fees" in updates) Object.assign(normalizedUpdates, applyFees(existingTrade, updates.fees));
   if ("first_scale_shares" in updates) {
     normalizedUpdates.first_scale_percent = calculatePositionPercent(updates.first_scale_shares, existingTrade.shares);
   }

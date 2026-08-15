@@ -3,6 +3,7 @@ import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import { getManagementSummary } from "../../lib/tradeManagement";
+import { getAuthoritativePnl } from "../../lib/tradePnl";
 
 function TradeSummary({
   trade,
@@ -54,7 +55,8 @@ function TradeSummary({
     importedEntry !== null && actualStop !== null && shares !== null
       ? Math.abs(importedEntry - actualStop) * shares
       : null;
-  const outcome = Number(trade.pnl || 0) > 0 ? "Win" : Number(trade.pnl || 0) < 0 ? "Loss" : "Breakeven";
+  const authoritativePnl = getAuthoritativePnl(trade);
+  const outcome = Number(authoritativePnl || 0) > 0 ? "Win" : Number(authoritativePnl || 0) < 0 ? "Loss" : "Breakeven";
   const processTone = ["A+", "A", "B"].includes(trade.setup_quality) && ["Excellent", "Good"].includes(trade.execution_quality) ? "Strong process" : trade.setup_quality || trade.execution_quality ? "Process needs review" : "Not rated";
 
   return (
@@ -64,10 +66,11 @@ function TradeSummary({
           <p className="eyebrow">Trade Review</p>
           <h3>{trade.ticker} {trade.direction}</h3>
         </div>
-        <Badge tone={Number(trade.pnl || 0) >= 0 ? "profit" : "loss"}>
-          {formatMoney(trade.pnl)}
+        <Badge tone={Number(authoritativePnl || 0) >= 0 ? "profit" : "loss"}>
+          {formatMoney(authoritativePnl)}
         </Badge>
       </div>
+      <div className="imported-execution-grid"><p><strong>Gross P&amp;L</strong><span>{formatMoney(trade.gross_pnl ?? trade.pnl)}</span></p><p><strong>Fees</strong><span>{trade.fees == null ? "N/A" : formatMoney(trade.fees)}</span></p><p><strong>Net P&amp;L</strong><span>{trade.net_pnl == null && trade.fees == null ? "Unavailable (gross shown)" : formatMoney(authoritativePnl)}</span></p></div>
 
       <div className="trade-overview-grid">
         <p><strong>Date</strong><span>{trade.trade_date || trade.date}</span></p>

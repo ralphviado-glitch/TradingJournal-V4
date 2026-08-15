@@ -12,6 +12,7 @@ import TodayPage from "../pages/today/TodayPage";
 import SettingsPage from "../pages/settings/SettingsPage";
 import OverviewPage from "../pages/dashboard/OverviewPage";
 import PlansPage from "../pages/plans/PlansPage";
+import CalendarPage from "../pages/calendar/CalendarPage";
 
 const AnalyticsPage = lazy(() => import("../pages/analytics/AnalyticsPage"));
 
@@ -33,6 +34,7 @@ function App() {
               <Route path="/pre-market-plan" element={<TodayPage />} />
               <Route path="/plans" element={<PlansPage />} />
               <Route path="/journal" element={<DashboardPage />} />
+              <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/dashboard" element={<OverviewPage />} />
               <Route path="/analytics" element={<Suspense fallback={<p className="status-message loading">Loading analytics...</p>}><AnalyticsPage /></Suspense>} />
               <Route path="/settings" element={<SettingsPage />} />

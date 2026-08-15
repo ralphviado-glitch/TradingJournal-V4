@@ -13,11 +13,12 @@ import { buildReviewQueue, getNextIncompleteTrade } from "../../lib/workflow/rev
 import { getWatchlistForDate } from "../../lib/watchlistService";
 import { buildWatchlistLinkPayload } from "../../lib/workflow/watchlistMatcher";
 import { useSearchParams } from "react-router-dom";
+import { emptyJournalFilters, filterJournalTrades } from "../../lib/journalFilters";
 
 
 function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedTicker, setSelectedTicker] = useState("ALL");
+  const [selectedTicker, setSelectedTicker] = useState("");
   const [selectedSetup, setSelectedSetup] = useState("ALL");
   const [selectedResult, setSelectedResult] = useState("ALL");
   const [startDate, setStartDate] = useState("");
@@ -160,30 +161,7 @@ function DashboardPage() {
     }
   };
 
-  const filteredTrades = trades.filter((trade) => {
-    const tickerMatches =
-      selectedTicker === "ALL" || trade.ticker === selectedTicker;
-
-    const setupMatches =
-      selectedSetup === "ALL" || trade.setup === selectedSetup;
-
-    const pnl = Number(trade.pnl || 0);
-
-    const resultMatches =
-      selectedResult === "ALL" ||
-      (selectedResult === "WIN" && pnl > 0) ||
-      (selectedResult === "LOSS" && pnl < 0) ||
-      (selectedResult === "BREAKEVEN" && pnl === 0);
-
-    const tradeDate = new Date(trade.trade_date || trade.date);
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(endDate) : null;
-
-    const dateMatches =
-      (!start || tradeDate >= start) && (!end || tradeDate <= end);
-
-    return tickerMatches && setupMatches && resultMatches && dateMatches;
-  });
+  const filteredTrades = filterJournalTrades(trades, { ticker: selectedTicker, setup: selectedSetup, result: selectedResult, startDate, endDate });
 
   if (loadStatus.type === "loading") {
     return <p className="status-message loading">{loadStatus.message}</p>;
@@ -193,7 +171,7 @@ function DashboardPage() {
     return <p className="status-message error">{loadStatus.message}</p>;
     }
 
-  const handleDataUpload = async (uploadedTrades) => {
+  const handleDataUpload = async (uploadedTrades, reconciliation) => {
     if (isImporting) return;
 
     setIsImporting(true);
@@ -204,7 +182,7 @@ function DashboardPage() {
       setActionStatus({ type: "loading", message: "Imported trades. Running post-trade processing..." });
       const processing = await processImportedTrades(importResult.trades);
       setTrades((currentTrades) => [...currentTrades, ...processing.trades]);
-      setImportSummary({ ...processing.summary, newTrades: importResult.importedCount, duplicates: importResult.skippedDuplicates });
+      setImportSummary({ ...processing.summary, ...reconciliation, newTrades: importResult.importedCount, duplicates: importResult.skippedDuplicates });
       setActionStatus({
         type: "success",
         message: `Imported: ${importResult.importedCount} trade${
@@ -234,9 +212,7 @@ function DashboardPage() {
   return (
     <div className="page-stack">
       <header className="app-header">
-        <h1>Journal</h1>
-
-        <CSVUploader onDataUpload={handleDataUpload} />
+        <div className="section-header"><div><h1>Journal</h1><p>Import, filter, and review completed trades.</p></div><CSVUploader onDataUpload={handleDataUpload} /></div>
         {actionStatus.message ? (
           <p className={`status-message ${actionStatus.type}`}>{actionStatus.message}</p>
         ) : null}
@@ -244,26 +220,16 @@ function DashboardPage() {
           <section className="import-processing-summary" aria-label="Import processing summary">
             <h2>Import Complete</h2>
             <p>New trades: {importSummary.newTrades} · Duplicates skipped: {importSummary.duplicates}</p>
+            {importSummary.filledRows != null ? <><p>Trade The Pool Account: {importSummary.canonicalAccount} · Selection method: {importSummary.selectionMethod}</p><p>Filled rows: {importSummary.filledRows} · Accounts detected: {importSummary.accountCount}</p><p>Completed trades: {importSummary.completedTrades} · Open positions: {importSummary.incompletePositions}</p><p>Gross P&amp;L: ${Number(importSummary.grossPnl).toFixed(2)} · Fees: unavailable · Basis: {importSummary.pnlBasis}</p><p>Status: {importSummary.status}</p></> : null}
             <p>Excursions calculated: {importSummary.excursionsCalculated} · Pending/failed: {importSummary.excursionsPendingOrFailed}</p>
             <p>Scale-outs detected: {importSummary.scaleOutsDetected} · Manual management review: {importSummary.manualManagementReview}</p>
             <p>Watchlist matches: {importSummary.watchlistMatches} · Unmatched: {importSummary.unmatchedTrades}</p>
             <Button onClick={() => reviewQueue[0] && openTradeReview(reviewQueue[0])} disabled={!reviewQueue.length}>Review Trades ({importSummary.tradesRequiringReview})</Button>
           </section>
         ) : null}
-        <select
-          value={selectedTicker}
-          onChange={(event) => setSelectedTicker(event.target.value)}
-        >
-          <option value="ALL">All Tickers</option>
-
-          {[...new Set(trades.map((trade) => trade.ticker))].map((ticker) => (
-            <option key={ticker} value={ticker}>
-              {ticker}
-            </option>
-          ))}
-        </select>
-
-        <select
+        <div className="journal-filter-toolbar">
+        <label>Ticker<input type="search" placeholder="Search ticker..." value={selectedTicker} onChange={(event) => setSelectedTicker(event.target.value)} /></label>
+        <label>Setup<select
           value={selectedSetup}
           onChange={(event) => setSelectedSetup(event.target.value)}
         >
@@ -276,9 +242,9 @@ function DashboardPage() {
               </option>
             )
           )}
-        </select>
+        </select></label>
 
-        <select
+        <label>Result<select
           value={selectedResult}
           onChange={(event) => setSelectedResult(event.target.value)}
         >
@@ -286,19 +252,21 @@ function DashboardPage() {
           <option value="WIN">Wins</option>
           <option value="LOSS">Losses</option>
           <option value="BREAKEVEN">Breakeven</option>
-        </select>
+        </select></label>
 
-        <input
+        <label>Date From<input
           type="date"
           value={startDate}
           onChange={(event) => setStartDate(event.target.value)}
-        />
+        /></label>
 
-        <input
+        <label>Date To<input
           type="date"
           value={endDate}
           onChange={(event) => setEndDate(event.target.value)}
-        />
+        /></label>
+        <Button variant="secondary" onClick={() => { setSelectedTicker(emptyJournalFilters.ticker); setSelectedSetup(emptyJournalFilters.setup); setSelectedResult(emptyJournalFilters.result); setStartDate(emptyJournalFilters.startDate); setEndDate(emptyJournalFilters.endDate); }}>Reset</Button>
+        </div>
       </header>
 
       {tradeReviewState.isOpen && selectedTrade ? (
