@@ -42,6 +42,10 @@ describe("CSV trade reconstruction", () => {
     expect(trades).toHaveLength(3);
     expect(trades.filter((trade) => trade.ticker === "AMD" && trade.direction === "Short")).toHaveLength(0);
     expect(trades.map((trade) => trade.shares)).toEqual([5, 100, 100]);
+    expect(trades.map((trade) => trade.gross_pnl)).toEqual([-96.1, -270.5, 295.85]);
+    expect(trades.map((trade) => trade.fees)).toEqual([1.5, 2.25, 3.75]);
+    expect(trades.map((trade) => trade.net_pnl)).toEqual([-97.6, -272.75, 292.1]);
+    expect(trades.diagnostics).toMatchObject({ grossPnl: -70.75, totalFees: 7.5, netPnl: -78.25, incompleteFees: .75, feeSource: "Trade The Pool calculated commission", pnlBasis: "Net", status: "Reconciled" });
     expect(trades[1].entry_price).toBeCloseTo(499.275, 3);
     expect(trades[2].exit_price).toBeCloseTo(502.4585, 4);
     expect(trades[2].orders.at(-1)).toMatchObject({ price: 502.74, priceInferred: true });
@@ -89,8 +93,23 @@ describe("CSV trade reconstruction", () => {
       entry_price: 10,
       exit_price: 12,
       shares: 100,
-      pnl: 200,
+      gross_pnl: 200,
     });
+  });
+
+  it("calculates a simple round trip and 200-share commissions per execution", () => {
+    const simple = parseTradesFromRows([order({ time: "13:30:00", side: "Buy", quantity: 100, price: 100 }), order({ time: "14:00:00", side: "Sell", quantity: 100, price: 101 })]);
+    expect(simple[0]).toMatchObject({ gross_pnl: 100, fees: 1.5, net_pnl: 98.5, pnl: 98.5, pnl_source: "calculated_net" });
+    const larger = parseTradesFromRows([order({ time: "13:30:00", side: "Buy", quantity: 200, price: 100 }), order({ time: "14:00:00", side: "Sell", quantity: 200, price: 101 })]);
+    expect(larger[0]).toMatchObject({ gross_pnl: 200, fees: 2, net_pnl: 198 });
+  });
+
+  it("deduplicates an exact filled-order representation before charging commission", () => {
+    const buy = { ...order({ time: "13:30:00", side: "Buy", quantity: 100, price: 100 }), "Order ID": "ENTRY-1" };
+    const sell = { ...order({ time: "14:00:00", side: "Sell", quantity: 100, price: 101 }), "Order ID": "EXIT-1" };
+    const trades = parseTradesFromRows([buy, { ...buy }, sell]);
+    expect(trades).toHaveLength(1); expect(trades[0]).toMatchObject({ shares: 100, fees: 1.5, net_pnl: 98.5 });
+    expect(trades.diagnostics.duplicateFilledRows).toBe(1);
   });
 
   it("reconstructs a basic short trade", () => {
@@ -105,7 +124,7 @@ describe("CSV trade reconstruction", () => {
       entry_price: 20,
       exit_price: 18,
       shares: 100,
-      pnl: 200,
+      gross_pnl: 200,
     });
   });
 
@@ -120,7 +139,8 @@ describe("CSV trade reconstruction", () => {
     expect(trades[0].entry_price).toBe(11);
     expect(trades[0].exit_price).toBe(13);
     expect(trades[0].shares).toBe(100);
-    expect(trades[0].pnl).toBe(200);
+    expect(trades[0].gross_pnl).toBe(200);
+    expect(trades[0]).toMatchObject({ fees: 2.25, net_pnl: 197.75, pnl: 197.75 });
   });
 
   it("scales out with weighted exit and realized P&L", () => {
@@ -132,7 +152,8 @@ describe("CSV trade reconstruction", () => {
 
     expect(trades).toHaveLength(1);
     expect(trades[0].exit_price).toBe(11.4);
-    expect(trades[0].pnl).toBe(140);
+    expect(trades[0].gross_pnl).toBe(140);
+    expect(trades[0].fees).toBe(2.25);
   });
 
   it("creates separate completed trades for the same ticker on the same day", () => {
@@ -144,8 +165,8 @@ describe("CSV trade reconstruction", () => {
     ]);
 
     expect(trades).toHaveLength(2);
-    expect(trades[0].pnl).toBe(100);
-    expect(trades[1].pnl).toBe(-100);
+    expect(trades[0].gross_pnl).toBe(100);
+    expect(trades[1].gross_pnl).toBe(-100);
   });
 
   it("splits a position reversal into a completed trade and a new open position", () => {
@@ -159,7 +180,7 @@ describe("CSV trade reconstruction", () => {
       direction: "Long",
       shares: 100,
       exit_price: 12,
-      pnl: 200,
+      gross_pnl: 200,
     });
   });
 
@@ -191,7 +212,7 @@ describe("CSV trade reconstruction", () => {
     ]);
 
     expect(trades).toHaveLength(1);
-    expect(trades[0].pnl).toBe(200);
+    expect(trades[0].gross_pnl).toBe(200);
   });
 
   it("supports decimal prices and quantities", () => {
@@ -202,7 +223,7 @@ describe("CSV trade reconstruction", () => {
 
     expect(trades).toHaveLength(1);
     expect(trades[0].shares).toBe(10.5);
-    expect(trades[0].pnl).toBe(15.75);
+    expect(trades[0].gross_pnl).toBe(15.75);
   });
 
   it("normalizes and reconstructs multiple Auckland fills on the previous New York trading date", () => {

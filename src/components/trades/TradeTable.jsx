@@ -16,6 +16,8 @@ import {
 import { getTradeReviewCompleteness } from "../../lib/workflow/reviewCompleteness";
 import { getAuthoritativePnl } from "../../lib/tradePnl";
 
+const formatCurrency = (value) => value == null || !Number.isFinite(Number(value)) ? "N/A" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(Number(value));
+
 const classificationFields = [
   ["setup", "Setup", "text"],
   ["grade", "Grade", "select"],
@@ -238,9 +240,9 @@ function TradeTable({
                 <td>{trade.entry_price}</td>
                 <td>{trade.exit_price}</td>
                 <td>{trade.shares}</td>
-                <td>{trade.gross_pnl ?? trade.pnl}</td>
-                <td>{trade.fees == null ? "N/A" : trade.fees}</td>
-                <td className={Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}>{getAuthoritativePnl(trade) ?? "N/A"}</td>
+                <td>{formatCurrency(trade.gross_pnl ?? trade.pnl)}</td>
+                <td>{formatCurrency(trade.fees)}</td>
+                <td className={Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}>{formatCurrency(getAuthoritativePnl(trade))}</td>
                 <td>{trade.setup || "Unclassified"}</td>
                 <td>{trade.grade || "-"}</td>
                 <td>{trade.exit_efficiency == null ? "-" : `${trade.exit_efficiency}%`}</td>

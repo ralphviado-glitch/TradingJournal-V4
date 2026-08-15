@@ -1,4 +1,5 @@
 import { tradeThePoolTimestampToNewYork } from "./marketTime";
+import { deduplicateFilledExecutions } from "./ttpCommission";
 
 const EPSILON = 1e-7;
 const text = (value) => String(value || "").trim();
@@ -40,19 +41,25 @@ export function normalizeBrokerOrders(rows = []) {
 }
 
 function signed(order) { return /buy/i.test(order.side) ? order.quantity : /sell|short/i.test(order.side) ? -order.quantity : 0; }
+function executionFragment(order, quantity) {
+  return { ...order, quantity, commission: order.executionCommission == null ? null : order.executionCommission * (quantity / order.quantity) };
+}
 function start(order, quantity) {
   const long = quantity > 0; const size = Math.abs(quantity);
+  const fill = executionFragment(order, size);
   return { date: order.date, ticker: order.ticker, direction: long ? "Long" : "Short", entry_time: order.time, exit_time: "",
     entry_price: order.price, exit_price: 0, shares: size, pnl: long ? -order.price * size : order.price * size,
     gross_pnl: 0, fees: null, net_pnl: null, pnl_source: "gross_only", risk: 0, setup: "Unclassified", notes: "", grade: "",
-    mistakeTags: [], emotionTags: [], rulesFollowed: null, screenshot: "", orders: [{ ...order, quantity: size }],
-    entryFills: [{ ...order, quantity: size }], exitFills: [],
+    mistakeTags: [], emotionTags: [], rulesFollowed: null, screenshot: "", orders: [fill],
+    entryFills: [fill], exitFills: [],
     openQuantity: quantity, entryValue: order.price * size, exitValue: 0, exitShares: 0 };
 }
 function finish(trade) {
   trade.entry_price = trade.entryFills.reduce((sum, fill) => sum + fill.price * fill.quantity, 0) / trade.entryFills.reduce((sum, fill) => sum + fill.quantity, 0);
   trade.exit_price = trade.exitFills.reduce((sum, fill) => sum + fill.price * fill.quantity, 0) / trade.exitFills.reduce((sum, fill) => sum + fill.quantity, 0);
-  trade.gross_pnl = Number(trade.pnl.toFixed(2)); trade.pnl = trade.gross_pnl;
+  trade.gross_pnl = Number(trade.pnl.toFixed(2));
+  trade.fees = Number(trade.orders.reduce((sum, fill) => sum + Number(fill.commission || 0), 0).toFixed(2));
+  trade.net_pnl = Number((trade.gross_pnl - trade.fees).toFixed(2)); trade.pnl = trade.net_pnl; trade.pnl_source = "calculated_net";
   delete trade.openQuantity; delete trade.entryValue; delete trade.exitValue; delete trade.exitShares; return trade;
 }
 
@@ -83,12 +90,12 @@ export function reconstructExecutionStream(orders = []) {
       const trade = active.get(order.ticker);
       if (!trade) { active.set(order.ticker, start(order, quantity)); tradeAction = quantity > 0 ? "OPEN_LONG" : "OPEN_SHORT"; break; }
       if (Math.sign(trade.openQuantity) === Math.sign(quantity)) {
-        const size = Math.abs(quantity); trade.orders.push({ ...order, quantity: size }); trade.openQuantity += Math.sign(quantity) * size;
-        trade.entryFills.push({ ...order, quantity: size }); trade.shares += size; trade.entryValue += order.price * size; trade.entry_price = trade.entryValue / trade.shares;
+        const size = Math.abs(quantity); const fill = executionFragment(order, size); trade.orders.push(fill); trade.openQuantity += Math.sign(quantity) * size;
+        trade.entryFills.push(fill); trade.shares += size; trade.entryValue += order.price * size; trade.entry_price = trade.entryValue / trade.shares;
         trade.pnl += trade.direction === "Long" ? -order.price * size : order.price * size; break;
       }
-      const size = Math.min(Math.abs(trade.openQuantity), Math.abs(quantity)); trade.orders.push({ ...order, quantity: size });
-      trade.exitFills.push({ ...order, quantity: size });
+      const size = Math.min(Math.abs(trade.openQuantity), Math.abs(quantity)); const fill = executionFragment(order, size); trade.orders.push(fill);
+      trade.exitFills.push(fill);
       trade.openQuantity += (trade.direction === "Long" ? -1 : 1) * size; trade.exitValue += order.price * size;
       trade.exitShares += size; trade.exit_time = order.time; trade.pnl += trade.direction === "Long" ? order.price * size : -order.price * size;
       quantity += quantity > 0 ? -size : size;
@@ -102,7 +109,8 @@ export function reconstructExecutionStream(orders = []) {
     }));
   });
   const openPositions = [...active.values()].map((trade) => ({ ticker: trade.ticker, direction: trade.direction,
-    quantity: Math.abs(trade.openQuantity), entry_price: trade.entryValue / trade.shares }));
+    quantity: Math.abs(trade.openQuantity), entry_price: trade.entryValue / trade.shares,
+    fees: Number(trade.orders.reduce((sum, fill) => sum + Number(fill.commission || 0), 0).toFixed(2)) }));
   trades.sort((a, b) => a.orders[0].timestamp - b.orders[0].timestamp);
   return { trades, openPositions, diagnostics };
 }
@@ -127,25 +135,29 @@ export function selectCanonicalExecutionAccount(orders = [], manualAccount = nul
 }
 
 export function parseBrokerImport(rows = [], options = {}) {
-  const fills = normalizeBrokerOrders(rows);
+  const normalizedFills = normalizeBrokerOrders(rows);
+  const { executions: fills, duplicates } = deduplicateFilledExecutions(normalizedFills);
   const preferredAccount = text(options.preferredAccount);
   const detectedAccounts = [...new Set(fills.map((fill) => fill.account))];
   if (preferredAccount && !detectedAccounts.includes(preferredAccount)) {
-    return { trades: [], diagnostics: { filledRows: fills.length, accounts: detectedAccounts, accountCount: detectedAccounts.length,
+    return { trades: [], diagnostics: { filledRows: fills.length, duplicateFilledRows: duplicates.length, accounts: detectedAccounts, accountCount: detectedAccounts.length,
       preferredAccount, preferredAccountMissing: true, ambiguous: false, status: "Preferred Account Missing",
       error: `Your preferred Trade The Pool account ${preferredAccount} was not found in this CSV.` } };
   }
   const resolvedAccount = preferredAccount || text(options.account);
   const selection = selectCanonicalExecutionAccount(fills, resolvedAccount || null);
   const accounts = selection.candidates.map((candidate) => candidate.account);
-  if (!selection.selected) return { trades: [], diagnostics: { filledRows: fills.length, accounts, accountCount: accounts.length, ambiguous: true, status: "Ambiguous Account" } };
+  if (!selection.selected) return { trades: [], diagnostics: { filledRows: fills.length, duplicateFilledRows: duplicates.length, accounts, accountCount: accounts.length, ambiguous: true, status: "Ambiguous Account" } };
   const selected = selection.selected; const grossPnl = Number(selected.trades.reduce((sum, trade) => sum + trade.gross_pnl, 0).toFixed(2));
-  return { trades: selected.trades, diagnostics: { filledRows: fills.length, accounts, accountCount: accounts.length, canonicalAccount: selected.account,
+  const totalFees = Number(selected.trades.reduce((sum, trade) => sum + trade.fees, 0).toFixed(2));
+  const netPnl = Number((grossPnl - totalFees).toFixed(2));
+  const incompleteFees = Number(selected.openPositions.reduce((sum, position) => sum + position.fees, 0).toFixed(2));
+  return { trades: selected.trades, diagnostics: { filledRows: fills.length, duplicateFilledRows: duplicates.length, accounts, accountCount: accounts.length, canonicalAccount: selected.account,
     selectionMethod: preferredAccount ? "Preferred Account" : options.account ? "Manual Account" : "Automatic",
     completedTrades: selected.trades.length, openPositions: selected.openPositions, incompletePositions: selected.openPositions.length,
     reconstructionDiagnostics: selected.diagnostics,
-    inferredPrices: selected.fills.filter((fill) => fill.priceInferred).length, grossPnl, feesAvailable: false, pnlBasis: "Gross",
-    status: selected.openPositions.length ? "Incomplete Export" : "Gross Only", ambiguous: false } };
+    inferredPrices: selected.fills.filter((fill) => fill.priceInferred).length, grossPnl, totalFees, netPnl, incompleteFees,
+    feesAvailable: true, feeSource: "Trade The Pool calculated commission", pnlBasis: "Net", status: "Reconciled", ambiguous: false } };
 }
 
 function journalTrades(rows) {

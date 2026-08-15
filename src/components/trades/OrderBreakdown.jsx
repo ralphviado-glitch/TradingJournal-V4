@@ -17,6 +17,7 @@ function OrderBreakdown({ orders }) {
             <th>Side</th>
             <th>Quantity</th>
             <th>Price</th>
+            <th>Commission</th>
             <th>Event</th>
           </tr>
         </thead>
@@ -29,6 +30,7 @@ function OrderBreakdown({ orders }) {
               <td>{order.side}</td>
               <td>{order.quantity}</td>
               <td>{order.price}</td>
+              <td>{order.commission == null ? "N/A" : `$${Number(order.commission).toFixed(2)}`}</td>
               <td>{order.event}</td>
             </tr>
           ))}
@@ -40,7 +42,7 @@ function OrderBreakdown({ orders }) {
           <div className="order-breakdown-card" key={index}>
             <strong>{order.side} {order.quantity} @ {order.price}</strong>
             <span>{order.date} {order.time}</span>
-            <small>{order.event}</small>
+            <small>{order.event}{order.commission == null ? "" : ` · $${Number(order.commission).toFixed(2)} commission`}</small>
           </div>
         ))}
       </div>
