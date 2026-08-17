@@ -7,7 +7,7 @@ import {
   updateWatchlistItem,
 } from "../../lib/watchlistService";
 import { DEFAULT_RISK_CONTROLS, calculatePositionSize } from "../../lib/risk";
-import { getAvailableWatchlistLevels, sortWatchlistByPriority } from "../../lib/watchlistUtils";
+import { sortWatchlistByPriority } from "../../lib/watchlistUtils";
 import { fetchTrades } from "../../lib/tradeService";
 import DailyCompletion from "../../components/today/DailyCompletion";
 import DailyDebrief from "../../components/today/DailyDebrief";
@@ -16,6 +16,8 @@ import { getNewYorkTradingDate } from "../../lib/marketTime";
 import { buildReviewQueue } from "../../lib/workflow/reviewCompleteness";
 import PreMarketContextForm from "../../components/today/PreMarketContextForm";
 import ImageUploadField from "../../components/ui/ImageUploadField";
+import AiPremarketAssistant from "../../components/today/AiPremarketAssistant";
+import Button from "../../components/ui/Button";
 
 const directionOptions = ["Long", "Short", "Both", "Neutral"];
 const structuredLevelInputs = [
@@ -88,6 +90,7 @@ function createEmptyWatchlistItem(tradeDate, priority) {
     notes: "",
     overall_rating: "",
     weekly_bias: "",
+    daily_bias: "",
     intraday_bias: "",
     relative_strength: "",
     confidence: "",
@@ -106,31 +109,27 @@ function createEmptyWatchlistItem(tradeDate, priority) {
 }
 
 const scenarioFields = ["long_scenario_enabled", "long_trigger", "long_setup", "long_target", "long_invalidation", "short_scenario_enabled", "short_trigger", "short_setup", "short_target", "short_invalidation"];
-const contextFields = ["overall_rating", "weekly_bias", "intraday_bias", "relative_strength", "confidence", "bottom_line"];
+const contextFields = ["weekly_bias", "daily_bias", "relative_strength", "confidence", "bottom_line"];
 
 export function WatchlistPlanEditor({ draft, onChange }) {
   const scenario = (side) => {
     const enabled = draft[`${side}_scenario_enabled`] === true;
-    return <section className={`watchlist-scenario-editor ${side}`}><label className="scenario-toggle"><input type="checkbox" checked={enabled} onChange={(event) => onChange(`${side}_scenario_enabled`, event.target.checked)} /><strong>{side.toUpperCase()} Scenario</strong></label>{enabled ? <div className="scenario-fields"><label>Trigger<input value={draft[`${side}_trigger`] || ""} onChange={(event) => onChange(`${side}_trigger`, event.target.value)} /></label><label>Entry / Setup<input value={draft[`${side}_setup`] || ""} onChange={(event) => onChange(`${side}_setup`, event.target.value)} /></label><label>Target<input value={draft[`${side}_target`] || ""} onChange={(event) => onChange(`${side}_target`, event.target.value)} /></label><label>Invalidation<input value={draft[`${side}_invalidation`] || ""} onChange={(event) => onChange(`${side}_invalidation`, event.target.value)} /></label></div> : <p className="field-helper">Not currently planned. Saved values are retained.</p>}</section>;
+    return <section className={`watchlist-scenario-editor ${side}`}><label className="scenario-toggle"><input type="checkbox" checked={enabled} onChange={(event) => onChange(`${side}_scenario_enabled`, event.target.checked)} /><strong>{side.toUpperCase()} Scenario</strong></label>{enabled ? <div className="scenario-fields"><label>Trigger<input value={draft[`${side}_trigger`] || ""} onChange={(event) => onChange(`${side}_trigger`, event.target.value)} /></label><label>Entry / Setup<input value={draft[`${side}_setup`] || ""} onChange={(event) => onChange(`${side}_setup`, event.target.value)} /></label><label>Invalidation<input value={draft[`${side}_invalidation`] || ""} onChange={(event) => onChange(`${side}_invalidation`, event.target.value)} /></label></div> : <p className="field-helper">Not currently planned. Saved values are retained.</p>}</section>;
   };
   return <>
-    <h3>Stock Context</h3><div className="watchlist-editor-grid compact"><label>Ticker<input required value={draft.ticker} onChange={(event) => onChange("ticker", event.target.value)} /></label><label>Rating<input value={draft.overall_rating || ""} onChange={(event) => onChange("overall_rating", event.target.value)} /></label><label>Weekly Bias<input value={draft.weekly_bias || ""} onChange={(event) => onChange("weekly_bias", event.target.value)} /></label><label>Intraday Bias<input value={draft.intraday_bias || ""} onChange={(event) => onChange("intraday_bias", event.target.value)} /></label><label>Relative Strength / Weakness<input value={draft.relative_strength || ""} onChange={(event) => onChange("relative_strength", event.target.value)} /></label><label>Preferred Direction<select value={draft.direction} onChange={(event) => onChange("direction", event.target.value)}>{directionOptions.map((direction) => <option key={direction}>{direction}</option>)}</select></label><label>Confidence<input value={draft.confidence || ""} onChange={(event) => onChange("confidence", event.target.value)} /></label><label>Priority<input type="number" min="1" value={draft.priority} onChange={(event) => onChange("priority", event.target.value)} /></label></div>
+    <h3>Stock Context</h3><div className="watchlist-editor-grid compact"><label>Ticker<input required value={draft.ticker} onChange={(event) => onChange("ticker", event.target.value)} /></label><label>Weekly Bias<input value={draft.weekly_bias || ""} onChange={(event) => onChange("weekly_bias", event.target.value)} /></label><label>Daily Bias<input value={draft.daily_bias || ""} onChange={(event) => onChange("daily_bias", event.target.value)} /></label><label>Relative Strength / Weakness<input value={draft.relative_strength || ""} onChange={(event) => onChange("relative_strength", event.target.value)} /></label><label>Preferred Direction<select value={draft.direction} onChange={(event) => onChange("direction", event.target.value)}>{directionOptions.map((direction) => <option key={direction}>{direction}</option>)}</select></label><label>Confidence<input value={draft.confidence || ""} onChange={(event) => onChange("confidence", event.target.value)} /></label><label>Priority<input type="number" min="1" value={draft.priority} onChange={(event) => onChange("priority", event.target.value)} /></label></div>
     <div className="watchlist-scenario-grid">{scenario("long")}{scenario("short")}</div>
     <label className="watchlist-bottom-line">Bottom Line / Game Plan<textarea rows="2" value={draft.bottom_line || ""} onChange={(event) => onChange("bottom_line", event.target.value)} /></label>
   </>;
 }
 
-export function WatchlistPlanCard({ item }) {
-  const scenario = (side) => item[`${side}_scenario_enabled`] ? <div className={`watchlist-scenario-summary ${side}`}><strong>{side.toUpperCase()}</strong><span>{[item[`${side}_trigger`], item[`${side}_setup`], item[`${side}_target`] && `→ ${item[`${side}_target`]}`].filter(Boolean).join(" · ") || "Scenario planned"}</span>{item[`${side}_invalidation`] ? <small>Invalidation: {item[`${side}_invalidation`]}</small> : null}</div> : null;
-  return <div className="watchlist-live-plan"><p>{item.intraday_bias || item.setup || "No intraday bias"}{item.relative_strength ? ` · ${item.relative_strength}` : ""}</p><strong>Prefer {String(item.direction || "Neutral").toUpperCase()}{item.confidence ? ` · ${item.confidence} Confidence` : ""}</strong>{scenario("long")}{scenario("short")}<p className="watchlist-bottom-line-summary"><strong>Bottom Line:</strong> {item.bottom_line || item.notes || "No game plan."}</p></div>;
+export function WatchlistPlanCard({ item, onPreview }) {
+  const scenario = (side) => item[`${side}_scenario_enabled`] ? <div className={`watchlist-scenario-summary ${side}`}><strong>{side.toUpperCase()} Setup</strong><span><b>Trigger</b>{item[`${side}_trigger`] || "—"}</span><span><b>Plan</b>{item[`${side}_setup`] || "—"}</span><span><b>Invalidation</b>{item[`${side}_invalidation`] || "—"}</span></div> : <div className={`watchlist-scenario-summary ${side}`}><strong>{side.toUpperCase()} Setup</strong><span className="muted">Not planned</span></div>;
+  return <div className="watchlist-execution-grid">{scenario("long")}{scenario("short")}<div className="watchlist-bottom-chart"><div className="watchlist-bottom-line-summary"><strong>Bottom Line</strong><span>{item.bottom_line || item.notes || "No game plan."}</span></div><section className="watchlist-plan-chart"><strong>Chart</strong>{item.screenshot ? <button type="button" className="watchlist-chart-thumbnail" onClick={() => onPreview?.(item)} aria-label={`Open ${item.ticker} chart`}><img src={item.screenshot} alt={`${item.ticker} pre-market chart`} /></button> : <span className="muted">No chart uploaded</span>}</section></div></div>;
 }
 
-function getPriorityClass(priority) {
-  const number = Number(priority || 0);
-
-  if (number === 1) return "priority-one";
-  if (number === 2) return "priority-two";
-  return "priority-three";
+export function WatchlistPlanTable({ items, savingId, onEdit, onDelete, onPreview }) {
+  return <div className="watchlist-plan-blocks">{items.map((item) => { const isDeleting = savingId != null && savingId === item.id; return <article className="watchlist-plan-block" key={item.id || item.ticker}><header className="watchlist-plan-header"><div className="watchlist-plan-metadata"><h3>{item.ticker}</h3><span>Weekly: <em className="plan-bias-badge">{item.weekly_bias || "Unknown"}</em></span><span>Daily: <em className="plan-bias-badge">{item.daily_bias || "Unknown"}</em></span><span>RS/RW: <b>{item.relative_strength || "—"}</b></span><span>Preferred: <em className="plan-direction-badge">{item.direction || "Neutral"}</em></span><span>Confidence: <b>{item.confidence || "—"}</b></span></div><div className="plan-table-actions">{item.screenshot ? <span className="plan-chart-indicator">Chart saved</span> : null}<Button variant="secondary" onClick={(event) => onEdit(event, item)}>Edit</Button><Button variant="danger" disabled={isDeleting} onClick={(event) => onDelete(event, item.id)}>{isDeleting ? "Deleting..." : "Delete"}</Button></div></header><WatchlistPlanCard item={item} onPreview={onPreview} /></article>; })}</div>;
 }
 
 function TodayPage() {
@@ -164,6 +163,7 @@ function TodayPage() {
   const [rules, setRules] = useState(ruleDefaults.map((rule) => ({ rule, checked: false })));
   const [todayTrades, setTodayTrades] = useState([]);
   const [isSavingDebrief, setIsSavingDebrief] = useState(false);
+  const [reloadVersion, setReloadVersion] = useState(0);
 
   const positionSize = calculatePositionSize({
     ...calculator,
@@ -199,7 +199,7 @@ function TodayPage() {
     }
 
     loadTodayData();
-  }, [selectedDate]);
+  }, [selectedDate, reloadVersion]);
 
   const updateMarketField = (field, value) => {
     if (field === "trade_date") { setSelectedDate(value); return; }
@@ -408,6 +408,7 @@ function TodayPage() {
 
       <main className="today-page">
         <section className="workflow-zone premarket-zone"><div className="zone-heading"><p className="eyebrow">Pre-Market</p><h2>Plan the Session</h2></div>
+        {watchlistStatus.type !== "loading" ? <AiPremarketAssistant key={`${selectedDate}-${reloadVersion}`} tradeDate={selectedDate} watchlist={watchlist} hasExistingPlan={Boolean(marketContext.id || watchlist.length)} onApproved={() => setReloadVersion((value) => value + 1)} /> : null}
         {marketStatus.message ? <p className={`status-message ${marketStatus.type}`}>{marketStatus.message}</p> : null}
         <PreMarketContextForm plan={marketContext} update={updateMarketField} onSubmit={handleSaveMarketContext} isSaving={isSavingMarket} setQQQFile={setQQQScreenshotFile} setSPYFile={setSPYScreenshotFile} />
         </section>
@@ -554,13 +555,7 @@ function TodayPage() {
             <p className="empty-state">No watchlist items for today.</p>
           ) : (
             <div className="watchlist-list">
-              {watchlist.map((item) => {
-                const isEditing = editingWatchlistId === item.id;
-                const draft = isEditing ? editingWatchlistItem : item;
-                const availableLevels = getAvailableWatchlistLevels(item);
-
-                if (isEditing) {
-                  return (
+              {editingWatchlistId && editingWatchlistItem ? (() => { const item = watchlist.find((entry) => entry.id === editingWatchlistId); const draft = editingWatchlistItem; return item ? (
                     <form className="watchlist-item watchlist-editor" key={item.id} onSubmit={(event) => handleUpdateWatchlistItem(event, item.id)}>
                       <fieldset disabled={savingWatchlistId === item.id}>
                         <WatchlistPlanEditor draft={draft} onChange={updateEditingWatchlistField} />
@@ -576,45 +571,8 @@ function TodayPage() {
                         </div>
                       </fieldset>
                     </form>
-                  );
-                }
-
-                return (
-                  <article className={`watchlist-item-card ${getPriorityClass(item.priority)}`} key={item.id}>
-                    <div className="watchlist-card-header">
-                      <span className="priority-badge">#{item.priority}</span>
-                      <div>
-                        <h3>{item.ticker}{item.overall_rating ? ` · ${item.overall_rating}` : ""}</h3>
-                      </div>
-                      <strong>{item.direction}</strong>
-                    </div>
-
-                    <WatchlistPlanCard item={item} />
-                    {availableLevels.length > 0 ? (
-                      <div className="watchlist-levels">
-                        {availableLevels.map(([label, value]) => (
-                          <p key={label}><strong>{label}</strong> {value}</p>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {item.key_levels ? <p><strong>Additional:</strong> {item.key_levels}</p> : null}
-                    {item.screenshot ? (
-                      <button type="button" className="watchlist-screenshot-button" onClick={() => setPreviewScreenshot({ src: item.screenshot, ticker: item.ticker })}>
-                        <img src={item.screenshot} alt={`${item.ticker} chart screenshot`} />
-                      </button>
-                    ) : null}
-                    {item.notes ? <p className="watchlist-notes">{item.notes}</p> : null}
-
-                    <div className="watchlist-actions">
-                      <button type="button" onClick={(event) => handleStartEditingWatchlist(event, item)}>Edit</button>
-                      <button type="button" disabled={savingWatchlistId === item.id} onClick={(event) => handleDeleteWatchlistItem(event, item.id)}>
-                        {savingWatchlistId === item.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+                  ) : null; })() : null}
+              <WatchlistPlanTable items={watchlist.filter((item) => item.id !== editingWatchlistId)} savingId={savingWatchlistId} onEdit={handleStartEditingWatchlist} onDelete={handleDeleteWatchlistItem} onPreview={(item) => setPreviewScreenshot({ src: item.screenshot, ticker: item.ticker })} />
             </div>
           )}
         </section>

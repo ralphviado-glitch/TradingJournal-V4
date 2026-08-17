@@ -15,13 +15,12 @@ function IndexCard({ symbol, plan, update, setFile }) {
   const screenshot = plan[`${prefix}Screenshot`];
   return <section className="index-plan-card">
     <button type="button" className="index-plan-summary" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>
-      <strong>{symbol} Analysis</strong><span>{plan[`${prefix}_intraday_bias`] || plan[`${prefix}_bias`] || "Unknown"} · {plan[`${prefix}_market_environment`] || "Unknown"}</span><span>Key {plan[`${prefix}_most_important_level`] || "N/A"} · Bull &gt; {plan[`${prefix}_bull_trigger`] || "N/A"} · Bear &lt; {plan[`${prefix}_bear_trigger`] || "N/A"}</span>
+      <strong>{symbol} Analysis</strong><span>Weekly {plan[`${prefix}_weekly_bias`] || "Unknown"} · Daily {plan[`${prefix}_daily_bias`] || "Unknown"} · {plan[`${prefix}_market_environment`] || "Unknown"}</span><span>Key {plan[`${prefix}_most_important_level`] || "N/A"} · Bull &gt; {plan[`${prefix}_bull_trigger`] || "N/A"} · Bear &lt; {plan[`${prefix}_bear_trigger`] || "N/A"}</span>
     </button>
     {expanded ? <div className="index-plan-fields">
       <div className="compact-field-grid">
         <SelectField label="Weekly Bias" value={plan[`${prefix}_weekly_bias`]} options={BIASES} onChange={(value) => update(`${prefix}_weekly_bias`, value)} />
         <SelectField label="Daily Bias" value={plan[`${prefix}_daily_bias`]} options={BIASES} onChange={(value) => update(`${prefix}_daily_bias`, value)} />
-        <SelectField label="Intraday Bias" value={plan[`${prefix}_intraday_bias`] || plan[`${prefix}_bias`]} options={BIASES} onChange={(value) => { update(`${prefix}_intraday_bias`, value); update(`${prefix}_bias`, value); }} />
         <SelectField label="Market Environment" value={plan[`${prefix}_market_environment`]} options={ENVIRONMENTS} onChange={(value) => update(`${prefix}_market_environment`, value)} />
       </div>
       <div className="level-field-grid">

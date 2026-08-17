@@ -10,7 +10,7 @@ import {
   uploadWatchlistScreenshot,
 } from "./storage";
 
-export const dualScenarioTextFields = ["overall_rating", "weekly_bias", "intraday_bias", "relative_strength", "confidence", "long_trigger", "long_setup", "long_target", "long_invalidation", "short_trigger", "short_setup", "short_target", "short_invalidation", "bottom_line"];
+export const dualScenarioTextFields = ["overall_rating", "weekly_bias", "daily_bias", "intraday_bias", "relative_strength", "confidence", "long_trigger", "long_setup", "long_target", "long_invalidation", "short_trigger", "short_setup", "short_target", "short_invalidation", "bottom_line"];
 export const dualScenarioBooleanFields = ["long_scenario_enabled", "short_scenario_enabled"];
 
 async function getCurrentUser() {

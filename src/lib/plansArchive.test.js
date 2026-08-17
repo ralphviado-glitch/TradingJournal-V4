@@ -43,4 +43,8 @@ describe("plans archive", () => {
     expect(filterPlanArchive(archive, { marketCondition: "Range" })).toHaveLength(1);
     expect(filterPlanArchive(archive, { completed: "yes", dateFrom: "2026-08-11" })).toHaveLength(1);
   });
+  it("shows all watchlist rows merged into the same trading date", () => {
+    const merged = buildPlanArchive([{ trade_date: "2026-08-17", market_condition: "Range" }], ["NVDA", "AMD", "TSLA", "MU", "SNDK", "DELL", "INTC"].map((ticker, priority) => ({ trade_date: "2026-08-17", ticker, priority: priority + 1 })));
+    expect(merged[0].watchlist.map((item) => item.ticker)).toEqual(["NVDA", "AMD", "TSLA", "MU", "SNDK", "DELL", "INTC"]);
+  });
 });
