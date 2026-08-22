@@ -40,12 +40,9 @@ export function parseNullablePrice(value) {
 
 export function getAvailableWatchlistLevels(item = {}) {
   return [
-    ["PMH", item.pmh],
-    ["PML", item.pml],
     ["PDH", item.pdh],
     ["PDL", item.pdl],
-    ["ATH", item.ath],
-    ["Resistance", item.major_resistance],
-    ["Support", item.major_support],
+    ["Major Resistance", item.major_resistance],
+    ["Major Support", item.major_support],
   ].filter(([, value]) => value !== null && value !== undefined && value !== "");
 }

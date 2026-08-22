@@ -46,6 +46,8 @@ export function mapAiDraftToApproval(draft, tradeDate) {
       trade_date: tradeDate, ticker: item.ticker, priority: index + 1,
       weekly_bias: item.weeklyBias, daily_bias: item.dailyBias, relative_strength: item.relativeStrength,
       direction: item.preferredDirection, confidence: item.confidence,
+      major_support: item.majorSupport ?? item.levels?.majorSupport,
+      major_resistance: item.majorResistance ?? item.levels?.majorResistance,
       long_scenario_enabled: item.longScenarioEnabled, long_setup: item.longPlan, long_trigger: item.longTrigger,
       long_invalidation: item.longInvalidation,
       short_scenario_enabled: item.shortScenarioEnabled, short_setup: item.shortPlan, short_trigger: item.shortTrigger,

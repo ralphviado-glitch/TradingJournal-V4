@@ -283,7 +283,7 @@ a:focus-visible {
 .ui-modal {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 100;
   display: grid;
   place-items: center;
   padding: var(--space-4);
@@ -2121,6 +2121,16 @@ fieldset {
 .plans-list { display: grid; gap: .7rem; margin-top: 1rem; }
 .plan-archive-card { display: grid; grid-template-columns: 1fr repeat(5, minmax(0, 1.25fr)); gap: .7rem; align-items: center; width: 100%; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text-primary); text-align: left; cursor: pointer; }
 .plan-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.plan-detail-grid > section:first-child { grid-column: 1 / -1; }
+.plan-detail-grid .overall-context-card { grid-column: 1 / -1; }
+.plan-field-list { display: grid; gap: .65rem; margin: 0; }
+.plan-field-list div { display: grid; gap: .2rem; }
+.plan-field-list dt { color: var(--text-secondary); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.plan-field-list dd { margin: 0; line-height: 1.5; }
+.major-level-badge { display: inline-flex; gap: .3rem; padding: .2rem .45rem; border: 1px solid var(--border); border-radius: 999px; }
+.archive-scenario-toggle { width: 100%; min-height: 40px; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+.screenshot-preview-modal { width: min(1100px, 100%); }
+.screenshot-preview-modal img { display: block; width: 100%; max-height: 78vh; object-fit: contain; }
 .plan-detail-grid section { padding: .8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .plan-detail-grid img { width: 100%; max-height: 280px; object-fit: contain; }
 .linked-plan-trade, .recent-trades-preview > p { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }

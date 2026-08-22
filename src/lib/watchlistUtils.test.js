@@ -33,10 +33,7 @@ describe("watchlist ordering", () => {
         pdh: "",
         major_support: 181,
       })
-    ).toEqual([
-      ["PMH", 184.5],
-      ["Support", 181],
-    ]);
+    ).toEqual([["Major Support", 181]]);
   });
 
   it("parses nullable price inputs safely", () => {

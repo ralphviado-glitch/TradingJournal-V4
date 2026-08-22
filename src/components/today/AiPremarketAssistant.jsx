@@ -48,8 +48,8 @@ export default function AiPremarketAssistant({ tradeDate, watchlist, hasExisting
 
   async function performApproval() {
     setIsSaving(true); setStatus({ type: "loading", message: "Approving plan..." });
-    try { await approveAiPremarketPlan(draft, tradeDate); await onApproved(); setMergeConfirmOpen(false); setDraft(null); setStatus({ type: "success", message: hasExistingPlan ? "Merged successfully." : "Approved successfully." }); }
-    catch (error) { setStatus({ type: "error", message: error.message || "Approval failed." }); }
+    try { await approveAiPremarketPlan(draft, tradeDate); await onApproved(); setMergeConfirmOpen(false); setDraft(null); setStatus({ type: "success", message: hasExistingPlan ? "Batch merged successfully." : "Pre-market plan saved." }); }
+    catch (error) { setStatus({ type: "error", message: error.message || "Save failed. Your changes were not saved." }); }
     finally { setIsSaving(false); }
   }
 
@@ -65,7 +65,7 @@ export default function AiPremarketAssistant({ tradeDate, watchlist, hasExisting
     {importOpen ? <section className="chatgpt-import-card"><h4>Import ChatGPT Plan</h4><label>Paste Trading Journal JSON<textarea rows="12" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="Paste only the TRADING_JOURNAL_JSON returned by ChatGPT." /></label><p className="ai-draft-helper">Raw JSON, one JSON code block, or a readable report containing one JSON code block is accepted.</p><div className="ai-draft-actions"><button type="button" onClick={loadDraft}>Load Draft</button><button type="button" onClick={() => { setImportOpen(false); setImportText(""); }}>Cancel</button></div></section> : null}
     {draft ? <div className="ai-draft-review">
       <div className="ai-draft-banner"><strong>CHATGPT STRUCTURAL DRAFT — NOT YET APPROVED — PREMARKET LEVELS NOT INCLUDED</strong><span>Imported {new Date(draft.metadata.generatedAt).toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "short" })}<br />Data as of {new Date(draft.metadata.dataAsOf).toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "short" })}</span></div>
-      <p className="ai-draft-helper">Add PMH/PML and any fresh premarket levels manually before the session.</p>
+      <p className="ai-draft-helper">Deterministic structural support and resistance are included and can be edited before approval.</p>
       {isAiDraftStale(draft.metadata.dataAsOf) ? <p className="status-message warning">Market data is more than 30 minutes old. Consider preparing a fresh package before approval.</p> : null}
       {draft.warnings?.length ? <ul className="ai-draft-warnings">{draft.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}
       <BatchApprovalSummary draftTickers={draft.watchlist.map((item) => item.ticker)} existingTickers={watchlist.map((item) => item.ticker)} showExisting={hasExistingPlan} />

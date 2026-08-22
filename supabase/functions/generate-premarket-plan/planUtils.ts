@@ -47,7 +47,9 @@ export function preprocessSymbol(ticker: string, tradeDate: string, _weekly: Can
     ticker, dataAvailability: daily.length ? weeklyTrend === "Unavailable" ? "Partial" : "Full" : "Unavailable", dataAvailable: Boolean(daily.length), weeklyTrend, dailyTrend: trend(daily),
     previousDayHigh: previous?.high ?? null, previousDayLow: previous?.low ?? null,
     recentPrice: daily.at(-1)?.close ?? null, recentVolume: daily.at(-1)?.volume ?? null,
-    atr: average(ranges), recentSupport: daily.length ? Math.min(...daily.slice(-5).map((bar) => bar.low)) : null,
+    atr: average(ranges), majorSupport: daily.length ? Math.min(...daily.slice(-5).map((bar) => bar.low)) : null,
+    majorResistance: daily.length ? Math.max(...daily.slice(-5).map((bar) => bar.high)) : null,
+    recentSupport: daily.length ? Math.min(...daily.slice(-5).map((bar) => bar.low)) : null,
     recentResistance: daily.length ? Math.max(...daily.slice(-5).map((bar) => bar.high)) : null,
     dailyCloses: daily.slice(-10).map((bar) => bar.close), premarketDataIncluded: false,
   };

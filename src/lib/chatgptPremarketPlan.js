@@ -21,14 +21,14 @@ Do not predict. Create conditional execution scenarios using market structure, w
 
 Analyze QQQ and SPY first, then every watchlist ticker. Use the deterministic weekly and daily biases supplied in the market data. Do not create an intraday bias or price targets. For each ticker provide independent LONG and SHORT scenarios when valid. Use IF price does THIS, THEN execute THIS. Keep Long Plan, Short Plan, Relative Strength/Weakness, and Bottom Line concise.
 
-Do not invent PMH/PML, gaps, overnight structure, premarket volume, or premarket behavior. Premarket levels will be added manually later. Numeric PDH/PDL and structural values supplied in the market data are deterministic and must not be replaced with invented values.`;
+Do not invent PMH/PML, gaps, overnight structure, premarket volume, or premarket behavior. Numeric PDH/PDL and structural Major Support/Major Resistance supplied in the market data are deterministic and must be echoed unchanged.`;
 
 export function buildChatGPTPackage(snapshot) {
   const contract = { version: CHATGPT_PREMARKET_PROMPT_VERSION, tradeDate: snapshot.tradeDate, dataAsOf: snapshot.metadata.dataAsOf, premarketDataIncluded: false,
     overallMarket: { marketCondition: "", expectedTradingDay: "", generalMarketNotes: "" },
     qqq: { weeklyBias: "Neutral", dailyBias: "Neutral", marketEnvironment: "", pdh: null, pdl: null, liquidityTarget: "", mostImportantLevel: null, bullTrigger: null, bearTrigger: null, gamePlan: "" },
     spy: { weeklyBias: "Neutral", dailyBias: "Neutral", marketEnvironment: "", pdh: null, pdl: null, liquidityTarget: "", mostImportantLevel: null, bullTrigger: null, bearTrigger: null, gamePlan: "" },
-    watchlist: [{ ticker: "NVDA", weeklyBias: "Bullish", dailyBias: "Bullish", relativeStrength: "RS vs QQQ", preferredDirection: "Long", confidence: "High", longScenarioEnabled: true, longPlan: "", longTrigger: "", longInvalidation: "", shortScenarioEnabled: true, shortPlan: "", shortTrigger: "", shortInvalidation: "", bottomLine: "" }] };
+    watchlist: [{ ticker: "NVDA", weeklyBias: "Bullish", dailyBias: "Bullish", relativeStrength: "RS vs QQQ", preferredDirection: "Long", confidence: "High", majorSupport: null, majorResistance: null, longScenarioEnabled: true, longPlan: "", longTrigger: "", longInvalidation: "", shortScenarioEnabled: true, shortPlan: "", shortTrigger: "", shortInvalidation: "", bottomLine: "" }] };
   return `TRADING JOURNAL PRE-MARKET ANALYSIS PACKAGE
 
 PROMPT VERSION: ${CHATGPT_PREMARKET_PROMPT_VERSION}
@@ -111,7 +111,9 @@ export function validateAndMapChatGPTPlan(plan, snapshot) {
     if (typeof item.longScenarioEnabled !== "boolean" || typeof item.shortScenarioEnabled !== "boolean") throw new Error(`Scenario flags for ${ticker} must be true or false.`);
     for (const field of ["relativeStrength", "longPlan", "longTrigger", "longInvalidation", "shortPlan", "shortTrigger", "shortInvalidation", "bottomLine"]) requiredString(item[field], `${ticker} ${field}`);
     const deterministic = sourceByTicker[ticker];
-    return { ...item, ticker, dataAvailable: true, weeklyBias: validateBias(item.weeklyBias, `${ticker} weeklyBias`, deterministic?.weeklyTrend), dailyBias: validateBias(item.dailyBias, `${ticker} dailyBias`, deterministic?.dailyTrend), levels: { pdh: deterministic?.previousDayHigh ?? null, pdl: deterministic?.previousDayLow ?? null, pmh: null, pml: null, atr: deterministic?.atr ?? null } };
+    const majorSupport = deterministic?.majorSupport ?? deterministic?.recentSupport ?? nullableNumber(item.majorSupport ?? null, `${ticker} majorSupport`);
+    const majorResistance = deterministic?.majorResistance ?? deterministic?.recentResistance ?? nullableNumber(item.majorResistance ?? null, `${ticker} majorResistance`);
+    return { ...item, ticker, majorSupport, majorResistance, dataAvailable: true, weeklyBias: validateBias(item.weeklyBias, `${ticker} weeklyBias`, deterministic?.weeklyTrend), dailyBias: validateBias(item.dailyBias, `${ticker} dailyBias`, deterministic?.dailyTrend), levels: { pdh: deterministic?.previousDayHigh ?? null, pdl: deterministic?.previousDayLow ?? null, majorSupport, majorResistance, atr: deterministic?.atr ?? null } };
   });
   return { overall: { marketCondition: requiredString(plan.overallMarket.marketCondition, "Market Condition"), expectedTradingDay: requiredString(plan.overallMarket.expectedTradingDay, "Expected Trading Day"), notes: requiredString(plan.overallMarket.generalMarketNotes, "General Market Notes") }, indexes, watchlist,
     metadata: { generatedAt: new Date().toISOString(), dataAsOf: requiredString(plan.dataAsOf, "dataAsOf"), tickersAnalyzed: ["QQQ", "SPY", ...tickers], model: null, promptVersion: CHATGPT_PREMARKET_PROMPT_VERSION, premarketDataIncluded: false, generationSource: "chatgpt_manual_import", importedTradeDate: plan.tradeDate } };

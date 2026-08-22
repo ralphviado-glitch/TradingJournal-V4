@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import { focusInitialModalElement, handleModalKeyDown } from "./modalFocus";
 
 const openModalStack = [];
@@ -41,7 +42,7 @@ function Modal({ title, children, onClose, className = "", initialFocusRef }) {
     };
   }, [initialFocusRef]);
 
-  return (
+  const content = (
     <div className="ui-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button className="ui-modal-backdrop" type="button" onClick={onClose}>
         <span>Close</span>
@@ -55,6 +56,7 @@ function Modal({ title, children, onClose, className = "", initialFocusRef }) {
       </div>
     </div>
   );
+  return typeof document === "undefined" ? content : createPortal(content, document.body);
 }
 
 export default Modal;

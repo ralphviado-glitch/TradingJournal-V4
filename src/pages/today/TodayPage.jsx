@@ -18,14 +18,10 @@ import PreMarketContextForm from "../../components/today/PreMarketContextForm";
 import ImageUploadField from "../../components/ui/ImageUploadField";
 import AiPremarketAssistant from "../../components/today/AiPremarketAssistant";
 import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
 
 const directionOptions = ["Long", "Short", "Both", "Neutral"];
 const structuredLevelInputs = [
-  ["pmh", "PMH"],
-  ["pml", "PML"],
-  ["pdh", "PDH"],
-  ["pdl", "PDL"],
-  ["ath", "ATH"],
   ["major_support", "Major Support"],
   ["major_resistance", "Major Resistance"],
 ];
@@ -118,6 +114,7 @@ export function WatchlistPlanEditor({ draft, onChange }) {
   };
   return <>
     <h3>Stock Context</h3><div className="watchlist-editor-grid compact"><label>Ticker<input required value={draft.ticker} onChange={(event) => onChange("ticker", event.target.value)} /></label><label>Weekly Bias<input value={draft.weekly_bias || ""} onChange={(event) => onChange("weekly_bias", event.target.value)} /></label><label>Daily Bias<input value={draft.daily_bias || ""} onChange={(event) => onChange("daily_bias", event.target.value)} /></label><label>Relative Strength / Weakness<input value={draft.relative_strength || ""} onChange={(event) => onChange("relative_strength", event.target.value)} /></label><label>Preferred Direction<select value={draft.direction} onChange={(event) => onChange("direction", event.target.value)}>{directionOptions.map((direction) => <option key={direction}>{direction}</option>)}</select></label><label>Confidence<input value={draft.confidence || ""} onChange={(event) => onChange("confidence", event.target.value)} /></label><label>Priority<input type="number" min="1" value={draft.priority} onChange={(event) => onChange("priority", event.target.value)} /></label></div>
+    <h3>Levels and Chart</h3><div className="watchlist-editor-grid plan">{structuredLevelInputs.map(([field, label]) => <label key={field}>{label}<input type="number" step="0.01" value={draft[field] ?? ""} onChange={(event) => onChange(field, event.target.value)} /></label>)}</div>
     <div className="watchlist-scenario-grid">{scenario("long")}{scenario("short")}</div>
     <label className="watchlist-bottom-line">Bottom Line / Game Plan<textarea rows="2" value={draft.bottom_line || ""} onChange={(event) => onChange("bottom_line", event.target.value)} /></label>
   </>;
@@ -147,6 +144,7 @@ function TodayPage() {
     message: "Loading watchlist...",
   });
   const [newWatchlistItem, setNewWatchlistItem] = useState(createEmptyWatchlistItem(today, 1));
+  const [watchlistEditorOpen, setWatchlistEditorOpen] = useState(false);
   const [editingWatchlistId, setEditingWatchlistId] = useState(null);
   const [editingWatchlistItem, setEditingWatchlistItem] = useState(null);
   const [newWatchlistScreenshotFile, setNewWatchlistScreenshotFile] = useState(null);
@@ -247,7 +245,8 @@ function TodayPage() {
       setWatchlist(nextWatchlist);
       setNewWatchlistItem(createEmptyWatchlistItem(today, nextWatchlist.length + 1));
       setNewWatchlistScreenshotFile(null);
-      setWatchlistStatus({ type: "success", message: "Watchlist item added." });
+      setWatchlistEditorOpen(false);
+      setWatchlistStatus({ type: "success", message: `${savedItem.ticker} added.` });
     } catch (error) {
       console.error("Failed to add watchlist item:", error);
       setWatchlistStatus({ type: "error", message: error.message || "Failed to add watchlist item." });
@@ -263,6 +262,7 @@ function TodayPage() {
     setEditingWatchlistItem({ ...item });
     setEditingWatchlistScreenshotFile(null);
     setRemoveEditingScreenshot(false);
+    setWatchlistEditorOpen(true);
     setWatchlistStatus({ type: "idle", message: "" });
   };
 
@@ -332,7 +332,8 @@ function TodayPage() {
       setEditingWatchlistItem(null);
       setEditingWatchlistScreenshotFile(null);
       setRemoveEditingScreenshot(false);
-      setWatchlistStatus({ type: "success", message: "Watchlist item saved." });
+      setWatchlistEditorOpen(false);
+      setWatchlistStatus({ type: "success", message: `${savedItem.ticker} updated.` });
     } catch (error) {
       console.error("Failed to update watchlist item:", error);
       setWatchlistStatus({ type: "error", message: error.message || "Failed to save watchlist item." });
@@ -531,48 +532,16 @@ function TodayPage() {
         </section>
 
         <section className="today-card watchlist-section">
-          <h2>Watchlist</h2>
+          <div className="section-header"><h2>Watchlist</h2><Button onClick={() => { setEditingWatchlistId(null); setEditingWatchlistItem(null); setNewWatchlistItem(createEmptyWatchlistItem(selectedDate, watchlist.length + 1)); setWatchlistEditorOpen(true); }}>+ Add Watchlist</Button></div>
           {watchlistStatus.message ? (
             <p className={`status-message ${watchlistStatus.type}`}>{watchlistStatus.message}</p>
           ) : null}
-
-          <form className="watchlist-form watchlist-editor" onSubmit={handleCreateWatchlistItem}>
-            <fieldset disabled={savingWatchlistId === "new"}>
-              <WatchlistPlanEditor draft={newWatchlistItem} onChange={(field, value) => setNewWatchlistItem((current) => ({ ...current, [field]: value }))} />
-              <details className="watchlist-secondary-fields"><summary>Levels and chart</summary><div className="watchlist-editor-grid">
-                {structuredLevelInputs.map(([field, label]) => <label key={field}>{label}<input type="number" step="0.01" value={newWatchlistItem[field]} onChange={(event) => setNewWatchlistItem((current) => ({ ...current, [field]: event.target.value }))} /></label>)}
-                <label>Additional Levels<textarea rows="2" value={newWatchlistItem.key_levels} onChange={(event) => setNewWatchlistItem((current) => ({ ...current, key_levels: event.target.value }))} /></label>
-                <ImageUploadField label="Chart Screenshot" file={newWatchlistScreenshotFile} disabled={savingWatchlistId === "new"} status={savingWatchlistId === "new" && newWatchlistScreenshotFile ? "uploading" : undefined} onChange={setNewWatchlistScreenshotFile} />
-              </div></details>
-
-              <button type="submit" disabled={savingWatchlistId === "new"}>
-                {savingWatchlistId === "new" ? "Adding..." : "Add"}
-              </button>
-            </fieldset>
-          </form>
 
           {watchlist.length === 0 ? (
             <p className="empty-state">No watchlist items for today.</p>
           ) : (
             <div className="watchlist-list">
-              {editingWatchlistId && editingWatchlistItem ? (() => { const item = watchlist.find((entry) => entry.id === editingWatchlistId); const draft = editingWatchlistItem; return item ? (
-                    <form className="watchlist-item watchlist-editor" key={item.id} onSubmit={(event) => handleUpdateWatchlistItem(event, item.id)}>
-                      <fieldset disabled={savingWatchlistId === item.id}>
-                        <WatchlistPlanEditor draft={draft} onChange={updateEditingWatchlistField} />
-                        <details className="watchlist-secondary-fields"><summary>Levels and chart</summary><div className="watchlist-editor-grid">
-                          {structuredLevelInputs.map(([field, label]) => <label key={field}>{label}<input type="number" step="0.01" value={draft[field] || ""} onChange={(event) => updateEditingWatchlistField(field, event.target.value)} /></label>)}
-                          <label>Additional Levels<textarea rows="2" value={draft.key_levels || ""} onChange={(event) => updateEditingWatchlistField("key_levels", event.target.value)} /></label>
-                          <ImageUploadField label="Chart Screenshot" file={editingWatchlistScreenshotFile} existingUrl={removeEditingScreenshot ? null : item.screenshot} disabled={savingWatchlistId === item.id} status={savingWatchlistId === item.id && editingWatchlistScreenshotFile ? "uploading" : undefined} onChange={(file) => { setEditingWatchlistScreenshotFile(file); setRemoveEditingScreenshot(false); }} onRemove={item.screenshot ? () => { setRemoveEditingScreenshot(true); setEditingWatchlistScreenshotFile(null); } : undefined} />
-                        </div></details>
-
-                        <div className="watchlist-actions">
-                          <button type="submit" disabled={savingWatchlistId === item.id}>{savingWatchlistId === item.id ? "Saving..." : "Save"}</button>
-                          <button type="button" disabled={savingWatchlistId === item.id} onClick={handleCancelWatchlistEdit}>Cancel</button>
-                        </div>
-                      </fieldset>
-                    </form>
-                  ) : null; })() : null}
-              <WatchlistPlanTable items={watchlist.filter((item) => item.id !== editingWatchlistId)} savingId={savingWatchlistId} onEdit={handleStartEditingWatchlist} onDelete={handleDeleteWatchlistItem} onPreview={(item) => setPreviewScreenshot({ src: item.screenshot, ticker: item.ticker })} />
+              <WatchlistPlanTable items={watchlist} savingId={savingWatchlistId} onEdit={handleStartEditingWatchlist} onDelete={handleDeleteWatchlistItem} onPreview={(item) => setPreviewScreenshot({ src: item.screenshot, ticker: item.ticker })} />
             </div>
           )}
         </section>
@@ -624,6 +593,7 @@ function TodayPage() {
         </section>
       </main>
 
+      {watchlistEditorOpen ? <Modal title={editingWatchlistItem ? `Edit ${editingWatchlistItem.ticker}` : "Add Watchlist Item"} onClose={(event) => editingWatchlistItem ? handleCancelWatchlistEdit(event) : setWatchlistEditorOpen(false)} className="watchlist-editor-modal"><form className="watchlist-editor" onSubmit={editingWatchlistItem ? (event) => handleUpdateWatchlistItem(event, editingWatchlistId) : handleCreateWatchlistItem}><fieldset disabled={Boolean(savingWatchlistId)}><WatchlistPlanEditor draft={editingWatchlistItem || newWatchlistItem} onChange={editingWatchlistItem ? updateEditingWatchlistField : (field, value) => setNewWatchlistItem((current) => ({ ...current, [field]: value }))} /><ImageUploadField label="Chart Screenshot" file={editingWatchlistItem ? editingWatchlistScreenshotFile : newWatchlistScreenshotFile} existingUrl={editingWatchlistItem && !removeEditingScreenshot ? editingWatchlistItem.screenshot : null} onChange={editingWatchlistItem ? (file) => { setEditingWatchlistScreenshotFile(file); setRemoveEditingScreenshot(false); } : setNewWatchlistScreenshotFile} onRemove={editingWatchlistItem?.screenshot ? () => { setRemoveEditingScreenshot(true); setEditingWatchlistScreenshotFile(null); } : undefined} /><div className="watchlist-actions"><Button variant="secondary" type="button" onClick={(event) => editingWatchlistItem ? handleCancelWatchlistEdit(event) : setWatchlistEditorOpen(false)}>Cancel</Button><Button type="submit">{savingWatchlistId ? "Saving..." : "Save"}</Button></div></fieldset></form></Modal> : null}
       {previewScreenshot ? (
         <div className="screenshot-modal" role="dialog" aria-modal="true" aria-label="Chart screenshot preview">
           <button type="button" className="screenshot-modal-backdrop" onClick={() => setPreviewScreenshot(null)}>
