@@ -501,6 +501,15 @@ fieldset {
   background-color: var(--bg-secondary);
 }
 
+.watchlist-editor-modal { width: min(1000px, calc(100vw - 32px)); max-width: 100%; overflow-x: hidden; }
+.watchlist-editor-modal .watchlist-editor, .watchlist-editor-modal fieldset, .watchlist-trade-plan-fields { min-width: 0; }
+.watchlist-editor-modal input, .watchlist-editor-modal select, .watchlist-editor-modal textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-primary); padding: .65rem .75rem; font: inherit; }
+.watchlist-editor-modal input:focus-visible, .watchlist-editor-modal select:focus-visible, .watchlist-editor-modal textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.watchlist-editor-modal label { display: grid; min-width: 0; gap: .4rem; overflow-wrap: anywhere; }
+.watchlist-trade-plan-fields { display: grid; gap: 1rem; }
+.trade-plan-toggle { justify-self: start; }
+.watchlist-editor:has(.trade-plan-toggle[aria-expanded="false"]) .image-upload-field { display: none; }
+
 .watchlist-editor h3 {
   margin: 8px 0 0;
 }
@@ -512,7 +521,7 @@ fieldset {
 }
 
 .watchlist-editor-grid.compact {
-  grid-template-columns: 0.9fr 0.9fr 0.65fr 1.2fr 0.75fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
 }
 
 .watchlist-editor-grid.plan {

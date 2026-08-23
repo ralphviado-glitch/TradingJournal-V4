@@ -6,14 +6,17 @@ import { fetchTrades } from "../../lib/tradeService";
 import { buildPlanArchive, filterPlanArchive, removePlanFromArchive } from "../../lib/plansArchive";
 import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
+import PlanWatchlistDetail from "./UnifiedPlanWatchlistDetail";
+export { default as PlanWatchlistDetail } from "./UnifiedPlanWatchlistDetail";
 
 function text(value) { return value || "Unknown"; }
 
-export function PlanWatchlistDetail({ item, onPreview }) {
-  const [expanded, setExpanded] = useState({ long: false, short: false });
-  const scenario = (side) => <div className={`archive-scenario ${side}`}><button type="button" className="archive-scenario-toggle" aria-expanded={expanded[side]} onClick={() => setExpanded((current) => ({ ...current, [side]: !current[side] }))}>{expanded[side] ? "Hide" : "Show"} {side === "long" ? "Long Plan" : "Short Plan"}</button>{expanded[side] ? item[`${side}_scenario_enabled`] == null ? <p className="muted">Historical scenario data unavailable.</p> : item[`${side}_scenario_enabled`] ? <><span><b>Trigger</b>{text(item[`${side}_trigger`])}</span><span><b>Plan</b>{text(item[`${side}_setup`])}</span><span><b>Invalidation</b>{text(item[`${side}_invalidation`])}</span></> : <p className="muted">Not planned.</p> : null}</div>;
+function LegacyPlanWatchlistDetail({ item, onPreview }) {
+  const scenario = (side) => <div className={`archive-scenario ${side}`}><h4>{side.toUpperCase()} Setup</h4>{item[`${side}_scenario_enabled`] == null ? <p className="muted">Historical scenario data unavailable.</p> : item[`${side}_scenario_enabled`] ? <><span><b>Trigger</b>{text(item[`${side}_trigger`])}</span><span><b>Plan</b>{text(item[`${side}_setup`])}</span><span><b>Invalidation</b>{text(item[`${side}_invalidation`])}</span></> : <p className="muted">Not planned.</p>}</div>;
   return <article className="archive-watchlist-plan"><header><h3>{item.ticker}</h3><div className="archive-watchlist-meta"><span className="plan-direction-badge">{item.direction || "Unknown"}</span><span>Weekly: {text(item.weekly_bias)}</span><span>Daily: {text(item.daily_bias)}</span><span>RS/RW: {text(item.relative_strength)}</span><span>Confidence: {text(item.confidence)}</span><span className="major-level-badge">Major Support: <b>{item.major_support ?? "—"}</b></span><span className="major-level-badge">Major Resistance: <b>{item.major_resistance ?? "—"}</b></span></div></header><div className="archive-scenario-grid">{scenario("long")}{scenario("short")}</div><p className="archive-bottom-line"><strong>Bottom Line:</strong> {item.bottom_line || item.notes || "No game plan."}</p><section className="archive-chart"><strong>Pre-Market Chart</strong>{item.screenshot ? <button type="button" onClick={() => onPreview?.(item)} aria-label={`Open ${item.ticker} archived chart`}><img src={item.screenshot} alt={`${item.ticker} pre-market chart`} /></button> : <span className="muted">No pre-market chart saved.</span>}</section></article>;
 }
+
+void LegacyPlanWatchlistDetail;
 
 export default function PlansPage() {
   const navigate = useNavigate();

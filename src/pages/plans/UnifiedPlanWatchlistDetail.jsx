@@ -1,0 +1,11 @@
+import { useId, useState } from "react";
+import Button from "../../components/ui/Button";
+
+const text = (value) => value || "Unknown";
+
+export default function PlanWatchlistDetail({ item, onPreview }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailId = `archive-trade-plan-${useId().replaceAll(":", "")}`;
+  const scenario = (side) => <div className={`archive-scenario ${side}`}><h4>{side.toUpperCase()} Setup</h4>{item[`${side}_scenario_enabled`] == null ? <p className="muted">Historical scenario data unavailable.</p> : item[`${side}_scenario_enabled`] ? <><span><b>Trigger</b>{text(item[`${side}_trigger`])}</span><span><b>Plan</b>{text(item[`${side}_setup`])}</span><span><b>Invalidation</b>{text(item[`${side}_invalidation`])}</span></> : <p className="muted">Not planned.</p>}</div>;
+  return <article className="archive-watchlist-plan"><header><h3>{item.ticker}</h3><div className="archive-watchlist-meta"><span className="plan-direction-badge">{item.direction || "Unknown"}</span><span>Weekly: {text(item.weekly_bias)}</span><span>Daily: {text(item.daily_bias)}</span><span>RS/RW: {text(item.relative_strength)}</span><span>Confidence: {text(item.confidence)}</span><span className="major-level-badge">Major Support: <b>{item.major_support ?? "—"}</b></span><span className="major-level-badge">Major Resistance: <b>{item.major_resistance ?? "—"}</b></span></div></header>{expanded ? <div id={detailId} className="archive-scenario-grid">{scenario("long")}{scenario("short")}</div> : null}<p className="archive-bottom-line"><strong>Bottom Line:</strong> {item.bottom_line || item.notes || "No game plan."}</p><section className="archive-chart"><strong>Pre-Market Chart</strong>{item.screenshot ? <button type="button" onClick={() => onPreview?.(item)} aria-label={`Open ${item.ticker} archived chart`}><img src={item.screenshot} alt={`${item.ticker} pre-market chart`} /></button> : <span className="muted">No pre-market chart saved.</span>}</section><Button variant="secondary" className="trade-plan-toggle" aria-expanded={expanded} aria-controls={detailId} onClick={() => setExpanded((value) => !value)}>{expanded ? "Hide Trade Plan" : "Show Trade Plan"}</Button></article>;
+}

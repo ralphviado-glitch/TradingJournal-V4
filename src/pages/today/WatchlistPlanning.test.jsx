@@ -11,15 +11,15 @@ describe("dual-scenario watchlist UI", () => {
   });
   it("renders mobile-stackable editor sections and retains disabled scenario values", () => {
     const html = renderToStaticMarkup(<WatchlistPlanEditor draft={{ ...plan, short_scenario_enabled: false }} onChange={() => {}} />);
-    expect(html).toContain("watchlist-scenario-grid"); expect(html).toContain("LONG Scenario"); expect(html).toContain("SHORT Scenario"); expect(html).toContain("Saved values are retained");
+    expect(html).toContain("Show Trade Plan"); expect(html).toContain('aria-expanded="false"'); expect(html).not.toContain("watchlist-scenario-grid");
   });
   it("renders one responsive full-width block without a wide table or scroll wrapper", () => {
     const html = renderToStaticMarkup(<WatchlistPlanTable items={[plan]} onEdit={() => {}} onDelete={() => {}} onPreview={() => {}} />);
-    expect(html).not.toContain("<table"); expect(html).not.toContain("watchlist-plan-table-wrap"); expect(html).toContain("watchlist-plan-header"); expect(html).toContain("watchlist-execution-grid"); expect(html).toContain("Weekly:"); expect(html).toContain("Daily:"); expect(html).toContain("RS/RW:"); expect(html).toContain("Preferred:"); expect(html).toContain("Confidence:"); expect(html).toContain("Trigger"); expect(html).toContain("Plan"); expect(html).toContain("Invalidation"); expect(html).toContain("ui-button-secondary"); expect(html).toContain("ui-button-danger"); expect(html).toContain("Edit"); expect(html).toContain("Delete"); expect(html).toContain("No chart uploaded");
+    expect(html).not.toContain("<table"); expect(html).not.toContain("watchlist-plan-table-wrap"); expect(html).toContain("watchlist-plan-header"); expect(html).not.toContain("watchlist-execution-grid"); expect(html).toContain("Weekly:"); expect(html).toContain("Daily:"); expect(html).toContain("RS/RW:"); expect(html).toContain("Preferred:"); expect(html).toContain("Confidence:"); expect(html).toContain("Major Support:"); expect(html).toContain("Major Resistance:"); expect(html).toContain("Show Trade Plan"); expect(html).toContain("Edit"); expect(html).toContain("Delete");
     expect(html).not.toContain("Rating"); expect(html).not.toContain("Intraday"); expect(html).not.toContain("Target");
   });
   it("shows a clickable persisted screenshot thumbnail", () => {
     const html = renderToStaticMarkup(<WatchlistPlanTable items={[{ ...plan, screenshot: "https://signed.test/chart.png" }]} onEdit={() => {}} onDelete={() => {}} onPreview={() => {}} />);
-    expect(html).toContain("watchlist-chart-thumbnail"); expect(html).toContain("https://signed.test/chart.png"); expect(html).toContain("Open TSLA chart");
+    expect(html).not.toContain("watchlist-chart-thumbnail"); expect(html).not.toContain("https://signed.test/chart.png"); expect(html).toContain("Show Trade Plan");
   });
 });
