@@ -151,7 +151,7 @@ function TodayPage() {
     message: "Loading watchlist...",
   });
   const [newWatchlistItem, setNewWatchlistItem] = useState(createEmptyWatchlistItem(today, 1));
-  const [watchlistEditorOpen, setWatchlistEditorOpen] = useState(false);
+  const [watchlistModalMode, setWatchlistModalMode] = useState(null);
   const [editingWatchlistId, setEditingWatchlistId] = useState(null);
   const [editingWatchlistItem, setEditingWatchlistItem] = useState(null);
   const [newWatchlistScreenshotFile, setNewWatchlistScreenshotFile] = useState(null);
@@ -252,7 +252,7 @@ function TodayPage() {
       setWatchlist(nextWatchlist);
       setNewWatchlistItem(createEmptyWatchlistItem(today, nextWatchlist.length + 1));
       setNewWatchlistScreenshotFile(null);
-      setWatchlistEditorOpen(false);
+      setWatchlistModalMode(null);
       setWatchlistStatus({ type: "success", message: `${savedItem.ticker} added.` });
     } catch (error) {
       console.error("Failed to add watchlist item:", error);
@@ -269,8 +269,7 @@ function TodayPage() {
     setEditingWatchlistItem({ ...item });
     setEditingWatchlistScreenshotFile(null);
     setRemoveEditingScreenshot(false);
-    setWatchlistEditorOpen(false);
-    setWatchlistEditorOpen(true);
+    setWatchlistModalMode("edit");
     setWatchlistStatus({ type: "idle", message: "" });
   };
 
@@ -281,6 +280,7 @@ function TodayPage() {
     setEditingWatchlistItem(null);
     setEditingWatchlistScreenshotFile(null);
     setRemoveEditingScreenshot(false);
+    setWatchlistModalMode(null);
     setWatchlistStatus({ type: "idle", message: "" });
   };
 
@@ -340,7 +340,7 @@ function TodayPage() {
       setEditingWatchlistItem(null);
       setEditingWatchlistScreenshotFile(null);
       setRemoveEditingScreenshot(false);
-      setWatchlistEditorOpen(false);
+      setWatchlistModalMode(null);
       setWatchlistStatus({ type: "success", message: `${savedItem.ticker} updated.` });
     } catch (error) {
       console.error("Failed to update watchlist item:", error);
@@ -540,7 +540,7 @@ function TodayPage() {
         </section>
 
         <section className="today-card watchlist-section">
-          <div className="section-header"><h2>Watchlist</h2><Button onClick={() => { setEditingWatchlistId(null); setEditingWatchlistItem(null); setNewWatchlistItem(createEmptyWatchlistItem(selectedDate, watchlist.length + 1)); setWatchlistEditorOpen(true); }}>+ Add Watchlist</Button></div>
+          <div className="section-header"><h2>Watchlist</h2><Button onClick={() => { setEditingWatchlistId(null); setEditingWatchlistItem(null); setNewWatchlistScreenshotFile(null); setNewWatchlistItem(createEmptyWatchlistItem(selectedDate, watchlist.length + 1)); setWatchlistModalMode("add"); }}>+ Add Watchlist</Button></div>
           {watchlistStatus.message ? (
             <p className={`status-message ${watchlistStatus.type}`}>{watchlistStatus.message}</p>
           ) : null}
@@ -601,7 +601,7 @@ function TodayPage() {
         </section>
       </main>
 
-      {watchlistEditorOpen ? <Modal title={editingWatchlistItem ? `Edit ${editingWatchlistItem.ticker}` : "Add Watchlist Item"} onClose={(event) => editingWatchlistItem ? handleCancelWatchlistEdit(event) : setWatchlistEditorOpen(false)} className="watchlist-editor-modal"><form className="watchlist-editor" onSubmit={editingWatchlistItem ? (event) => handleUpdateWatchlistItem(event, editingWatchlistId) : handleCreateWatchlistItem}><fieldset disabled={Boolean(savingWatchlistId)}><WatchlistPlanEditor draft={editingWatchlistItem || newWatchlistItem} onChange={editingWatchlistItem ? updateEditingWatchlistField : (field, value) => setNewWatchlistItem((current) => ({ ...current, [field]: value }))} /><ImageUploadField label="Chart Screenshot" file={editingWatchlistItem ? editingWatchlistScreenshotFile : newWatchlistScreenshotFile} existingUrl={editingWatchlistItem && !removeEditingScreenshot ? editingWatchlistItem.screenshot : null} onChange={editingWatchlistItem ? (file) => { setEditingWatchlistScreenshotFile(file); setRemoveEditingScreenshot(false); } : setNewWatchlistScreenshotFile} onRemove={editingWatchlistItem?.screenshot ? () => { setRemoveEditingScreenshot(true); setEditingWatchlistScreenshotFile(null); } : undefined} /><div className="watchlist-actions"><Button variant="secondary" type="button" onClick={(event) => editingWatchlistItem ? handleCancelWatchlistEdit(event) : setWatchlistEditorOpen(false)}>Cancel</Button><Button type="submit">{savingWatchlistId ? "Saving..." : "Save"}</Button></div></fieldset></form></Modal> : null}
+      {watchlistModalMode ? <Modal title={watchlistModalMode === "edit" ? `Edit ${editingWatchlistItem?.ticker || "Watchlist Item"}` : "Add Watchlist Item"} onClose={(event) => watchlistModalMode === "edit" ? handleCancelWatchlistEdit(event) : setWatchlistModalMode(null)} className="watchlist-editor-modal"><form className="watchlist-editor" onSubmit={watchlistModalMode === "edit" ? (event) => handleUpdateWatchlistItem(event, editingWatchlistId) : handleCreateWatchlistItem}><fieldset disabled={Boolean(savingWatchlistId)}><WatchlistPlanEditor draft={watchlistModalMode === "edit" ? editingWatchlistItem : newWatchlistItem} onChange={watchlistModalMode === "edit" ? updateEditingWatchlistField : (field, value) => setNewWatchlistItem((current) => ({ ...current, [field]: value }))} /><ImageUploadField label="Chart Screenshot" file={watchlistModalMode === "edit" ? editingWatchlistScreenshotFile : newWatchlistScreenshotFile} existingUrl={watchlistModalMode === "edit" && !removeEditingScreenshot ? editingWatchlistItem?.screenshot : null} onChange={watchlistModalMode === "edit" ? (file) => { setEditingWatchlistScreenshotFile(file); setRemoveEditingScreenshot(false); } : setNewWatchlistScreenshotFile} onRemove={watchlistModalMode === "edit" && editingWatchlistItem?.screenshot ? () => { setRemoveEditingScreenshot(true); setEditingWatchlistScreenshotFile(null); } : undefined} /><div className="watchlist-actions"><Button variant="secondary" type="button" onClick={(event) => watchlistModalMode === "edit" ? handleCancelWatchlistEdit(event) : setWatchlistModalMode(null)}>Cancel</Button><Button type="submit">{savingWatchlistId ? "Saving..." : "Save"}</Button></div></fieldset></form></Modal> : null}
       {previewScreenshot ? (
         <div className="screenshot-modal" role="dialog" aria-modal="true" aria-label="Chart screenshot preview">
           <button type="button" className="screenshot-modal-backdrop" onClick={() => setPreviewScreenshot(null)}>

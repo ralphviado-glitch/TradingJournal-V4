@@ -507,7 +507,7 @@ fieldset {
 .watchlist-editor-modal input:focus-visible, .watchlist-editor-modal select:focus-visible, .watchlist-editor-modal textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .watchlist-editor-modal label { display: grid; min-width: 0; gap: .4rem; overflow-wrap: anywhere; }
 .watchlist-trade-plan-fields { display: grid; gap: 1rem; }
-.trade-plan-toggle { justify-self: start; }
+.trade-plan-toggle { justify-self: start; width: max-content; max-width: 100%; white-space: nowrap; }
 .watchlist-editor:has(.trade-plan-toggle[aria-expanded="false"]) .image-upload-field { display: none; }
 
 .watchlist-editor h3 {
@@ -2102,7 +2102,8 @@ fieldset {
 .batch-merge-confirmation { display: grid; gap: 1rem; }
 .plan-bias-badge, .plan-direction-badge { display: inline-flex; padding: .2rem .45rem; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
 .plan-bias-badge, .plan-direction-badge { font-style: normal; font-weight: 700; }
-.plan-table-actions { display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; }
+.plan-table-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; flex: 0 0 auto; }
+.plan-table-actions .ui-button { flex: 0 0 auto; width: max-content; white-space: nowrap; }
 .watchlist-plan-blocks { display: grid; gap: .8rem; min-width: 0; }
 .watchlist-plan-block { display: grid; gap: .8rem; min-width: 0; padding: .8rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .watchlist-plan-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; padding-bottom: .65rem; border-bottom: 1px solid var(--border); }
@@ -2123,7 +2124,7 @@ fieldset {
 .watchlist-chart-thumbnail { display: block; width: 100%; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-primary); cursor: zoom-in; }
 .watchlist-chart-thumbnail img { display: block; width: 100%; max-height: 180px; object-fit: contain; }
 @media (max-width: 900px) { .watchlist-execution-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .watchlist-bottom-chart { grid-column: 1 / -1; } }
-@media (max-width: 700px) { .watchlist-plan-header { align-items: flex-start; flex-direction: column; } .watchlist-plan-metadata, .watchlist-execution-grid { grid-template-columns: 1fr; } .watchlist-plan-metadata { display: grid; width: 100%; } .watchlist-bottom-chart { grid-column: auto; } .plan-table-actions { width: 100%; } .plan-table-actions .ui-button { flex: 1; } }
+@media (max-width: 700px) { .watchlist-plan-header { align-items: flex-start; flex-direction: column; } .watchlist-plan-metadata, .watchlist-execution-grid { grid-template-columns: 1fr; } .watchlist-plan-metadata { display: grid; width: 100%; } .watchlist-bottom-chart { grid-column: auto; } .plan-table-actions { width: 100%; } }
 @media (max-width: 700px) { .ai-assistant-heading, .ai-ticker-controls, .ai-draft-banner, .ai-draft-actions { align-items: stretch; flex-direction: column; } .ai-draft-grid { grid-template-columns: 1fr; } }
 .plans-filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; padding: 1rem; }
 .plans-filters label { display: grid; gap: .35rem; }
