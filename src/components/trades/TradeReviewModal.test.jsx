@@ -36,6 +36,20 @@ describe("TradeReviewModal", () => {
     expect(html).toContain("Detailed Review");
     expect(html).toContain("Quick Review");
     expect(html).toContain("Save Review");
+    expect(html).toContain("review-tag-grid");
+    expect(html).toContain("sequence-grid");
+    expect((html.match(/sequence-card/g) || []).length).toBe(6);
+    expect(html).toContain("context-grid");
+    expect(html).toContain("execution-grid");
+    expect(html).toContain(">Tight<");
+    expect(html).not.toContain(">Marginal<");
+    expect(html).toContain("review-note-field");
+    expect(html).toContain('rows="5"');
+    expect(html).toContain("grade-panel");
+    expect(html).not.toContain("Automatic Grade");
+    expect(html).toContain("review-evidence-grid");
+    expect(html).toContain("Screenshots");
+    expect(html).toContain("Order Breakdown");
     expect(html).toContain("No watchlist match.");
   });
 

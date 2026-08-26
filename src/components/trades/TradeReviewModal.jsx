@@ -43,6 +43,7 @@ function TradeReviewModal({
     <Modal title={`${trade.ticker} ${String(trade.direction || "").toUpperCase()}`} onClose={onClose} className="trade-review-modal">
       <div className="trade-review-modal-heading">
         <div>
+          <h2>{trade.ticker} {String(trade.direction || "").toUpperCase()}</h2>
           <p>{trade.trade_date || trade.date}</p>
           <div className="review-badges">
             <Badge tone={trade.direction === "Short" ? "warning" : "neutral"}>{trade.direction || "N/A"}</Badge>
@@ -64,6 +65,14 @@ function TradeReviewModal({
       />
 
       {trade.final_grade ? <section className="review-detail-section auto-grade saved-grade" aria-label="Saved review summary"><h3>Saved Review Summary</h3><div className="review-detail-grid"><div><strong>Setup Types</strong><TagList values={trade.setupTags?.map((tag)=>tag.name)} emptyText={trade.setup || "Unclassified"}/></div><div><strong>Confluences</strong><TagList values={trade.confluenceTags?.map((tag)=>tag.name)} emptyText="None"/></div><div><strong>Setup Grade</strong><span>{trade.setup_grade}</span></div><div><strong>Execution Grade</strong><span>{trade.execution_grade}</span></div><div><strong>Final Grade</strong><span>{trade.final_grade}</span></div><div><strong>Outcome</strong><span>{trade.outcome_classification}</span></div></div><p>{trade.grade_explanation}</p>{trade.review_note?<p><strong>Review Note:</strong> {trade.review_note}</p>:null}</section>:null}
+
+      <div className="review-evidence-grid">
+        <section className="review-detail-section" aria-labelledby="screenshot-heading">
+          <h3 id="screenshot-heading">Screenshots</h3>
+          {trade.screenshot ? <><button className="review-screenshot-button" type="button" onClick={() => setShowScreenshot((current) => !current)} aria-expanded={showScreenshot}><img src={trade.screenshot} alt={`${trade.ticker} trade screenshot`} /><span>{showScreenshot ? "Hide large preview" : "View large preview"}</span></button>{showScreenshot ? <div className="review-screenshot-preview"><img src={trade.screenshot} alt={`${trade.ticker} trade screenshot enlarged`} /></div> : null}</> : <p className="field-helper">No screenshot attached.</p>}
+        </section>
+        <OrderBreakdown orders={trade.orders} />
+      </div>
 
       <details className="review-details"><summary>Automatic Execution Summary</summary><TradeSummary
         trade={trade}
@@ -104,19 +113,6 @@ function TradeReviewModal({
         </div>
       </section>
 
-      <section className="review-detail-section" aria-labelledby="screenshot-heading">
-        <h3 id="screenshot-heading">Screenshot</h3>
-        {trade.screenshot ? (
-          <>
-            <button className="review-screenshot-button" type="button" onClick={() => setShowScreenshot((current) => !current)} aria-expanded={showScreenshot}>
-              <img src={trade.screenshot} alt={`${trade.ticker} trade screenshot`} />
-              <span>{showScreenshot ? "Hide large preview" : "View large preview"}</span>
-            </button>
-            {showScreenshot ? <div className="review-screenshot-preview"><img src={trade.screenshot} alt={`${trade.ticker} trade screenshot enlarged`} /></div> : null}
-          </>
-        ) : <p className="field-helper">No screenshot attached.</p>}
-      </section>
-
       <section className="review-detail-section" aria-labelledby="notes-heading">
         <h3 id="notes-heading">Notes</h3>
         <div className="review-notes-grid">
@@ -125,7 +121,6 @@ function TradeReviewModal({
         </div>
       </section>
 
-      <OrderBreakdown orders={trade.orders} />
       <TradeReview reviews={reviews} />
       </details>
       <div className="trade-review-modal-footer">{nextTrade ? <Button onClick={() => onNextTrade?.(nextTrade)}>Next Trade</Button> : null}<Button variant="secondary" onClick={onClose}>Close Trade Review</Button></div>

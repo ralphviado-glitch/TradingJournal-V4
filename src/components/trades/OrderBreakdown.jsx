@@ -1,6 +1,6 @@
 function OrderBreakdown({ orders }) {
   if (!orders || orders.length === 0) {
-    return <p>No order breakdown available.</p>;
+    return <div className="chart-card"><h3>Order Breakdown</h3><p>No order breakdown available.</p></div>;
   }
 
   return (
