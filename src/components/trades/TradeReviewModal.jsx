@@ -63,6 +63,8 @@ function TradeReviewModal({
         onRetryExcursion={onCalculateExcursions}
       />
 
+      {trade.final_grade ? <section className="review-detail-section auto-grade saved-grade" aria-label="Saved review summary"><h3>Saved Review Summary</h3><div className="review-detail-grid"><div><strong>Setup Types</strong><TagList values={trade.setupTags?.map((tag)=>tag.name)} emptyText={trade.setup || "Unclassified"}/></div><div><strong>Confluences</strong><TagList values={trade.confluenceTags?.map((tag)=>tag.name)} emptyText="None"/></div><div><strong>Setup Grade</strong><span>{trade.setup_grade}</span></div><div><strong>Execution Grade</strong><span>{trade.execution_grade}</span></div><div><strong>Final Grade</strong><span>{trade.final_grade}</span></div><div><strong>Outcome</strong><span>{trade.outcome_classification}</span></div></div><p>{trade.grade_explanation}</p>{trade.review_note?<p><strong>Review Note:</strong> {trade.review_note}</p>:null}</section>:null}
+
       <details className="review-details"><summary>Automatic Execution Summary</summary><TradeSummary
         trade={trade}
         marketDay={marketDay}

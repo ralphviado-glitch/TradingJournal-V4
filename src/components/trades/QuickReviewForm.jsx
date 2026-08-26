@@ -1,90 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect,useMemo,useState } from "react";
 import Button from "../ui/Button";
-import ImageUploadField from "../ui/ImageUploadField";
-import Badge from "../ui/Badge";
-import { RULE_VIOLATION_OPTIONS } from "../../lib/breakRetestReview";
-import { EXECUTION_QUALITY_VALUES, SETUP_QUALITY_VALUES } from "../../lib/tradeManagement";
-import { getTradeReviewCompleteness } from "../../lib/workflow/reviewCompleteness";
-import { buildQuickReviewPayload, createQuickReviewDraft, deriveEnteredAfterFirstFiveMinutes } from "../../lib/workflow/quickReview";
-
-function metric(value, suffix = "") {
-  return value === null || value === undefined || value === "" ? "N/A" : `${value}${suffix}`;
-}
-
-function matchText(value) { return value == null ? "Unknown" : value ? "Yes" : "No"; }
-
-export function CompactPlanSummary({ trade }) {
-  const side = String(trade.direction || "").toLowerCase();
-  const enabled = trade[`planned_${side}_scenario_enabled`];
-  const trigger = trade[`planned_${side}_trigger`];
-  const setup = trade[`planned_${side}_setup`];
-  const target = trade[`planned_${side}_target`];
-  return <div className="planned-context"><Badge tone="neutral">Pre-Market Plan</Badge><p><strong>Preferred:</strong> {String(trade.planned_direction || "Unknown").toUpperCase()} · <strong>Actual:</strong> {String(trade.direction || "Unknown").toUpperCase()}</p><p>{side === "short" ? "SHORT" : "LONG"} Scenario Planned: {matchText(enabled)} · Scenario Match: {matchText(trade.planned_scenario_matched)} · Preferred Direction Match: {matchText(trade.preferred_direction_matched ?? trade.direction_matched)}</p>{enabled ? <p><strong>{side.toUpperCase()} PLAN</strong> {[trigger, setup, target && `→ ${target}`].filter(Boolean).join(" · ") || "Planned"}</p> : null}{trade.planned_bottom_line || trade.planned_notes ? <p><strong>Bottom Line:</strong> {trade.planned_bottom_line || trade.planned_notes}</p> : null}</div>;
-}
-
-function QuickReviewForm({ trade, onSave, onSaveNext, onDetailedReview, isSaving, excursionStatus, onRetryExcursion }) {
-  const [draft, setDraft] = useState(() => createQuickReviewDraft(trade));
-  const [message, setMessage] = useState("");
-  const [showScreenshot, setShowScreenshot] = useState(false);
-  const firstFieldRef = useRef(null);
-  const preview = getTradeReviewCompleteness({ ...trade, ...buildQuickReviewPayload(draft) });
-  const enteredAfterFive = deriveEnteredAfterFirstFiveMinutes(trade);
-
-  useEffect(() => {
-    firstFieldRef.current?.focus();
-  }, []);
-
-  const update = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
-  const toggleViolation = (violation) => update("rule_violations", draft.rule_violations.includes(violation)
-    ? draft.rule_violations.filter((item) => item !== violation) : [...draft.rule_violations, violation]);
-
-  const save = async (advance) => {
-    setMessage("");
-    try {
-      const saved = await (advance ? onSaveNext : onSave)(buildQuickReviewPayload(draft));
-      if (!advance) setMessage(getTradeReviewCompleteness(saved || { ...trade, ...buildQuickReviewPayload(draft) }).status === "Review Complete" ? "All trades reviewed." : "Review saved.");
-    } catch (error) {
-      setMessage(error.message || "Review could not be saved.");
-    }
-  };
-
-  return <form className="quick-review" onSubmit={(event) => { event.preventDefault(); save(false); }}>
-    <section className="quick-review-context">
-      <p><strong>{trade.ticker} {String(trade.direction || "").toUpperCase()}</strong><span>{trade.trade_date || trade.date} · {trade.entry_time || "N/A"}</span></p>
-      <div className="quick-metric-grid">
-        <p><small>P&amp;L · Imported</small><strong>{metric(trade.pnl)}</strong></p><p><small>Shares · Imported</small><strong>{metric(trade.shares)}</strong></p>
-        <p><small>Entry · Imported</small><strong>{metric(trade.entry_price)}</strong></p><p><small>Exit · Imported</small><strong>{metric(trade.exit_price)}</strong></p>
-        <p><small>MFE · Automatic</small><strong>{metric(trade.mfe)}</strong></p><p><small>MAE · Automatic</small><strong>{metric(trade.mae)}</strong></p>
-        <p><small>MFE R · Automatic</small><strong>{metric(trade.mfe_r, "R")}</strong></p><p><small>MAE R · Automatic</small><strong>{metric(trade.mae_r, "R")}</strong></p>
-        <p><small>Exit Efficiency · Automatic</small><strong>{metric(trade.exit_efficiency, "%")}</strong></p>
-        <p><small>After First 5 Minutes · Derived</small><strong>{enteredAfterFive == null ? "Unknown" : enteredAfterFive ? "Yes" : "No"}</strong></p>
-      </div>
-      {excursionStatus?.type === "error" || trade.excursion_status === "Failed" ? <Button variant="secondary" disabled={isSaving} onClick={() => onRetryExcursion?.(trade)}>Retry Excursion</Button> : null}
-      {trade.watchlist_match_status === "Matched" ? <CompactPlanSummary trade={trade} /> : null}
-    </section>
-
-    <section className="quick-review-manual">
-      <div className="section-header"><div><p className="eyebrow">Manual Review</p><h3>Quick Review</h3></div><strong>{preview.completedFields} / 5 complete</strong></div>
-      <progress max="5" value={preview.completedFields}>{preview.completedFields} of 5</progress>
-      <p className="field-helper">{preview.status}{preview.missingFields.length ? ` · Missing: ${preview.missingFields.join(", ")}` : ""}</p>
-      <fieldset disabled={isSaving} className="quick-review-fields">
-        <label>Setup Quality<select ref={firstFieldRef} data-modal-initial-focus value={draft.setup_quality} onChange={(event) => update("setup_quality", event.target.value)}><option value="">Unknown</option>{SETUP_QUALITY_VALUES.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Execution Quality<select value={draft.execution_quality} onChange={(event) => update("execution_quality", event.target.value)}><option value="">Unknown</option>{EXECUTION_QUALITY_VALUES.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <label>Break &amp; Retest Setup?<select value={draft.break_retest_setup} onChange={(event) => update("break_retest_setup", event.target.value)}><option value="">Unknown</option><option value="true">Yes</option><option value="false">No</option></select></label>
-        <label>Rule Adherence Score<input type="number" min="0" max="100" step="1" value={draft.rule_adherence_score} onChange={(event) => update("rule_adherence_score", event.target.value)} /></label>
-        <fieldset className="rule-violation-fieldset"><legend>Rule Violations <small>(optional)</small></legend><div className="quick-violation-grid">{RULE_VIOLATION_OPTIONS.map((violation) => <label key={violation}><input type="checkbox" checked={draft.rule_violations.includes(violation)} onChange={() => toggleViolation(violation)} />{violation}</label>)}</div></fieldset>
-        <label>Review Notes<textarea value={draft.setup_review_notes} onChange={(event) => update("setup_review_notes", event.target.value)} /><small>Record what happened, what you did well, or what should improve.</small></label>
-        <ImageUploadField label="Screenshot (optional)" file={draft.screenshotFile} existingUrl={trade.screenshot} disabled={isSaving} status={isSaving && draft.screenshotFile ? "uploading" : undefined} onChange={(file) => update("screenshotFile", file)} />
-        {trade.screenshot ? <><button className="quick-screenshot" type="button" aria-expanded={showScreenshot} onClick={() => setShowScreenshot((current) => !current)}><img src={trade.screenshot} alt={`${trade.ticker} screenshot`} /><span>{showScreenshot ? "Hide enlarged screenshot" : "Enlarge screenshot"}</span></button>{showScreenshot ? <img className="quick-screenshot-preview" src={trade.screenshot} alt={`${trade.ticker} screenshot enlarged`} /> : null}</> : null}
-      </fieldset>
-    </section>
-    {message ? <p className={`status-message ${message === "Review saved." || message === "All trades reviewed." ? "success" : "error"}`}>{message}</p> : null}
-    <div className="quick-review-actions">
-      <Button variant="secondary" disabled={isSaving} onClick={onDetailedReview}>Detailed Review</Button>
-      <Button disabled={isSaving} onClick={() => save(false)}>{isSaving ? "Saving review..." : "Save Review"}</Button>
-      {onSaveNext ? <Button disabled={isSaving} onClick={() => save(true)}>{isSaving ? "Saving review..." : "Save & Next Trade"}</Button> : null}
-    </div>
-  </form>;
-}
-
-export default QuickReviewForm;
+import { createReviewTag,fetchReviewTags } from "../../lib/reviewTagService";
+import { gradeTradeReview,isQuickReviewComplete,SEQUENCE_STAGES } from "../../lib/tradeGrading";
+import { buildQuickReviewPayload,createQuickReviewDraft } from "../../lib/workflow/quickReview";
+const HELP={break:"Price decisively clears the planned/key level.",displacement:"Expansion shows real intent away from the level.",acceptance:"Price establishes beyond the level instead of immediately rejecting.",retest:"Price returns toward the setup area.",hold:"Structure stays valid on the retest.",trigger:"Entry confirmation occurred after the sequence."};
+const VIOLATIONS=["None","Anticipated Entry","Chased","FOMO","Early Entry","No Confirmation","Oversized","Moved Stop Wider","Revenge Trade","Unplanned Trade","Overtraded","Broke Max Trades Rule","Entered Against Market Context","Poor R:R","Other"];
+export function CompactPlanSummary({trade}){const side=String(trade.direction||"").toLowerCase();return <div className="planned-context"><p><strong>Preferred:</strong> {String(trade.planned_direction||"Unknown").toUpperCase()} · <strong>Actual:</strong> {String(trade.direction||"Unknown").toUpperCase()}</p><p>Scenario Match: {trade.planned_scenario_matched==null?"Unknown":trade.planned_scenario_matched?"Yes":"No"} · Preferred Direction Match: {(trade.preferred_direction_matched??trade.direction_matched)==null?"Unknown":(trade.preferred_direction_matched??trade.direction_matched)?"Yes":"No"}</p>{trade[`planned_${side}_scenario_enabled`]?<p><strong>{side.toUpperCase()} PLAN</strong> {[trade[`planned_${side}_trigger`],trade[`planned_${side}_setup`],trade[`planned_${side}_target`]].filter(Boolean).join(" · ")}</p>:null}</div>}
+function Segments({label,value,options,onChange,help}){return <fieldset className="review-segments"><legend>{label}{help?<span title={help} aria-label={`${label}: ${help}`}> ?</span>:null}</legend><div>{options.map(([key,text])=><button type="button" key={key} aria-pressed={value===key} className={value===key?`selected ${key}`:""} onClick={()=>onChange(key)}>{text}</button>)}</div></fieldset>}
+function TagPicker({label,kind,tags,selected,onChange,onCreated,required}){const[q,setQ]=useState("");const create=async()=>{const tag=await createReviewTag(kind,q);onCreated(tag);onChange([...new Set([...selected,tag.id])]);setQ("")};return <fieldset className="review-tag-picker"><legend>{label}{required?" *":""}</legend><div className="review-tag-search"><input aria-label={`Search or create ${label}`} value={q} onChange={e=>setQ(e.target.value)} placeholder={`Search or create ${label.toLowerCase()}`}/><Button variant="secondary" disabled={!q.trim()} onClick={create}>+ Create</Button></div><div className="review-tag-options">{tags.filter(t=>t.name.toLowerCase().includes(q.toLowerCase())).map(t=><label key={t.id}><input type="checkbox" checked={selected.includes(t.id)} onChange={()=>onChange(selected.includes(t.id)?selected.filter(id=>id!==t.id):[...selected,t.id])}/>{t.name}</label>)}</div></fieldset>}
+export default function QuickReviewForm({trade,onSave,onSaveNext,onDetailedReview,isSaving}){const[draft,setDraft]=useState(()=>createQuickReviewDraft(trade));const[tags,setTags]=useState({setup:[],confluence:[]});const[message,setMessage]=useState("");useEffect(()=>{Promise.all([fetchReviewTags("setup"),fetchReviewTags("confluence")]).then(([setup,confluence])=>setTags({setup,confluence})).catch(e=>setMessage(e.message))},[]);const outcome=Number(trade.pnl||0)>0?"win":Number(trade.pnl||0)<0?"loss":"breakeven";const grade=useMemo(()=>gradeTradeReview(draft,outcome),[draft,outcome]);const update=(field,value)=>setDraft(d=>({...d,[field]:value}));const save=async(next=false)=>{setMessage("");try{await(next?onSaveNext:onSave)(buildQuickReviewPayload(draft,trade,tags));setMessage(isQuickReviewComplete(draft)?"Review saved.":"Review saved as In Progress.")}catch(e){setMessage(e.message||"Review could not be saved.")}};const toggle=v=>update("ruleViolations",v==="None"?(draft.ruleViolations.includes(v)?[]:[v]):(draft.ruleViolations.includes(v)?draft.ruleViolations.filter(x=>x!==v):[...draft.ruleViolations.filter(x=>x!=="None"),v]));return <form className="quick-review" onSubmit={e=>{e.preventDefault();save()}}><header className="quick-review-title"><div><p className="eyebrow">30–60 second workflow</p><h3>Quick Review</h3></div><strong>{isQuickReviewComplete(draft)?"Ready to save":"In Progress"}</strong></header>
+<TagPicker label="Setup Type" kind="setup" tags={tags.setup} selected={draft.setupTagIds} onChange={v=>update("setupTagIds",v)} onCreated={tag=>setTags(t=>({...t,setup:[...t.setup.filter(x=>x.id!==tag.id),tag]}))} required/><TagPicker label="Confluences" kind="confluence" tags={tags.confluence} selected={draft.confluenceTagIds} onChange={v=>update("confluenceTagIds",v)} onCreated={tag=>setTags(t=>({...t,confluence:[...t.confluence.filter(x=>x.id!==tag.id),tag]}))}/>
+<section><h4>Setup Sequence</h4><div className="sequence-grid">{SEQUENCE_STAGES.map(stage=><Segments key={stage} label={stage[0].toUpperCase()+stage.slice(1)} help={HELP[stage]} value={draft.sequence[stage]} options={[["met","✓ Met"],["not_met","✕ Not Met"],["na","— N/A"]]} onChange={v=>update("sequence",{...draft.sequence,[stage]:v})}/>)}</div></section>
+<section><h4>Context</h4><div className="review-check-grid"><Segments label="Market / QQQ-SPY" value={draft.marketContext} options={[["aligned","Aligned"],["neutral","Neutral"],["against","Against"]]} onChange={v=>update("marketContext",v)}/><Segments label="Room / R:R" value={draft.roomQuality} options={[["good","Good"],["marginal","Marginal"],["poor","Poor"]]} onChange={v=>update("roomQuality",v)}/><Segments label="Planned Key Level" value={draft.plannedLevel} options={[["yes","Yes"],["no","No"]]} onChange={v=>update("plannedLevel",v)}/></div></section>
+<section><h4>Execution / Risk</h4><div className="review-check-grid">{[["validEntryTrigger","Valid Entry Trigger?",false],["stopFollowed","Stop Followed?",false],["riskFollowed","Risk / Size Followed?",false],["managementFollowed","Management Followed?",true],["exitPlanFollowed","Exit According to Plan?",true]].map(([key,label,na])=><Segments key={key} label={label} value={draft[key]} options={[["yes","Yes"],["no","No"],...(na?[["na","N/A"]]:[])]} onChange={v=>update(key,v)}/>)}</div></section>
+<fieldset className="rule-violation-fieldset"><legend>Rule Violations *</legend><div className="quick-violation-grid">{VIOLATIONS.map(v=><label key={v}><input type="checkbox" checked={draft.ruleViolations.includes(v)} onChange={()=>toggle(v)}/>{v}</label>)}</div></fieldset>
+<section className="auto-grade"><h4>Automatic Grade</h4><div><p><span>Setup</span><strong>{grade.setupGrade}</strong></p><p><span>Execution</span><strong>{grade.executionGrade}</strong></p><p><span>Final</span><strong>{grade.finalGrade}</strong></p><p><span>Outcome</span><strong>{grade.outcomeClassification}</strong></p></div><p>{grade.explanation}</p><small>Grading version: {grade.gradingVersion}. P&amp;L never changes the grade.</small></section><label>Review Note <small>(optional)</small><textarea value={draft.reviewNote} onChange={e=>update("reviewNote",e.target.value)} placeholder="What is worth remembering from this trade?"/></label>{message?<p className={`status-message ${message.startsWith("Review saved")?"success":"error"}`}>{message}</p>:null}<div className="quick-review-actions"><Button variant="secondary" onClick={onDetailedReview}>Detailed Review</Button><Button disabled={isSaving} type="submit">{isSaving?"Saving…":"Save Review"}</Button>{onSaveNext?<Button disabled={isSaving} onClick={()=>save(true)}>Save &amp; Next</Button>:null}</div></form>}

@@ -1,51 +1,5 @@
-import { normalizeThreeState } from "../breakRetestReview";
-
-export function createQuickReviewDraft(trade = {}) {
-  return {
-    setup_quality: trade.setup_quality || "",
-    execution_quality: trade.execution_quality || "",
-    break_retest_setup: trade.break_retest_setup === true ? "true" : trade.break_retest_setup === false ? "false" : "",
-    rule_adherence_score: trade.rule_adherence_score ?? "",
-    rule_violations: trade.rule_violations || [],
-    setup_review_notes: trade.setup_review_notes || trade.notes || "",
-    screenshotFile: null,
-  };
-}
-
-export function buildQuickReviewPayload(draft) {
-  return {
-    setup_quality: draft.setup_quality,
-    execution_quality: draft.execution_quality,
-    break_retest_setup: normalizeThreeState(draft.break_retest_setup),
-    rule_adherence_score: draft.rule_adherence_score,
-    rule_violations: draft.rule_violations,
-    setup_review_notes: draft.setup_review_notes,
-    screenshotFile: draft.screenshotFile,
-  };
-}
-
-function parseEntryClock(value = "") {
-  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
-  if (!match) return null;
-  let hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const second = Number(match[3] || 0);
-  const period = match[4]?.toUpperCase();
-  if (period === "PM" && hour < 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-  if (hour > 23 || minute > 59 || second > 59) return null;
-  return hour * 3600 + minute * 60 + second;
-}
-
-export function deriveEnteredAfterFirstFiveMinutes(trade = {}) {
-  const firstFillUtc = trade.orders?.[0]?.timestampUtc;
-  let clock = trade.entry_time;
-  if (firstFillUtc) {
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-    }).formatToParts(new Date(firstFillUtc)).map((part) => [part.type, part.value]));
-    clock = `${parts.hour}:${parts.minute}:${parts.second}`;
-  }
-  const secondsAfterMidnight = parseEntryClock(clock);
-  return secondsAfterMidnight === null ? null : secondsAfterMidnight >= 9 * 3600 + 35 * 60;
-}
+import { gradeTradeReview, isQuickReviewComplete, SEQUENCE_STAGES } from "../tradeGrading";
+export function createQuickReviewDraft(trade={}) { const c=trade.quick_review_context||{},e=trade.quick_review_execution||{}; return {setup_quality:trade.setup_quality||"",execution_quality:trade.execution_quality||"",break_retest_setup:trade.break_retest_setup,rule_adherence_score:trade.rule_adherence_score??"",setup_review_notes:trade.setup_review_notes||"",setupTagIds:(trade.setupTags||[]).map(t=>t.id),confluenceTagIds:(trade.confluenceTags||[]).map(t=>t.id),sequence:{...Object.fromEntries(SEQUENCE_STAGES.map(s=>[s,""])),...(trade.quick_review_sequence||{})},marketContext:c.marketContext||"",roomQuality:c.roomQuality||"",plannedLevel:c.plannedLevel||"",validEntryTrigger:e.validEntryTrigger||"",stopFollowed:e.stopFollowed||"",riskFollowed:e.riskFollowed||"",managementFollowed:e.managementFollowed||"",exitPlanFollowed:e.exitPlanFollowed||"na",ruleViolations:trade.rule_violations||[],reviewNote:trade.review_note||""}; }
+export function buildQuickReviewPayload(draft,trade,tags={}) { if(!trade)return {setup_quality:draft.setup_quality,execution_quality:draft.execution_quality,break_retest_setup:draft.break_retest_setup,rule_adherence_score:draft.rule_adherence_score,rule_violations:draft.ruleViolations||[],setup_review_notes:draft.setup_review_notes}; const pnl=Number(trade.pnl||0),outcome=pnl>0?"win":pnl<0?"loss":"breakeven",g=gradeTradeReview(draft,outcome),complete=isQuickReviewComplete(draft); return {setup_tag_ids:draft.setupTagIds,confluence_tag_ids:draft.confluenceTagIds,setup_tags:(tags.setup||[]).filter(t=>draft.setupTagIds.includes(t.id)),confluence_tags:(tags.confluence||[]).filter(t=>draft.confluenceTagIds.includes(t.id)),quick_review_sequence:draft.sequence,quick_review_context:{marketContext:draft.marketContext,roomQuality:draft.roomQuality,plannedLevel:draft.plannedLevel},quick_review_execution:{validEntryTrigger:draft.validEntryTrigger,stopFollowed:draft.stopFollowed,riskFollowed:draft.riskFollowed,managementFollowed:draft.managementFollowed,exitPlanFollowed:draft.exitPlanFollowed},rule_violations:draft.ruleViolations,review_note:draft.reviewNote,setup_grade:g.setupGrade,execution_grade:g.executionGrade,final_grade:g.finalGrade,grade:g.finalGrade,outcome_classification:g.outcomeClassification,grade_explanation:g.explanation,grading_version:g.gradingVersion,review_status:complete?"Reviewed":"In Progress",quick_review_completed_at:complete?trade.quick_review_completed_at||new Date().toISOString():null}; }
+function parseClock(value=""){const m=String(value).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);if(!m)return null;let h=Number(m[1]);const p=m[4]?.toUpperCase();if(p==="PM"&&h<12)h+=12;if(p==="AM"&&h===12)h=0;return h*3600+Number(m[2])*60+Number(m[3]||0)}
+export function deriveEnteredAfterFirstFiveMinutes(trade={}){let clock=trade.entry_time;if(trade.orders?.[0]?.timestampUtc){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(trade.orders[0].timestampUtc)).map(x=>[x.type,x.value]));clock=`${p.hour}:${p.minute}:${p.second}`}const seconds=parseClock(clock);return seconds==null?null:seconds>=34500;}

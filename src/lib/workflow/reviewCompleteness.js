@@ -7,6 +7,7 @@ export const REVIEW_REQUIREMENTS = [
 ];
 
 export function getTradeReviewCompleteness(trade = {}) {
+  if (trade.quick_review_completed_at || trade.review_status === "Reviewed") return { status: "Reviewed", completedFields: 5, totalRequiredFields: 5, percentage: 100, missingFields: [] };
   const completed = REVIEW_REQUIREMENTS.filter((item) => item.complete(trade));
   const missing = REVIEW_REQUIREMENTS.filter((item) => !item.complete(trade));
   const percentage = Math.round((completed.length / REVIEW_REQUIREMENTS.length) * 100);

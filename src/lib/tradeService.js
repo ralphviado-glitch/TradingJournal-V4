@@ -66,6 +66,8 @@ const breakRetestTextFields = ["break_direction", "break_level_type", "displacem
 const workflowTextFields = ["processing_status", "excursion_status", "management_status", "watchlist_match_status", "review_status", "planned_direction", "planned_setup", "planned_key_levels", "planned_notes", "processing_error", "planned_overall_rating", "planned_weekly_bias", "planned_intraday_bias", "planned_relative_strength", "planned_confidence", "planned_long_trigger", "planned_long_setup", "planned_long_target", "planned_long_invalidation", "planned_short_trigger", "planned_short_setup", "planned_short_target", "planned_short_invalidation", "planned_bottom_line", "plan_direction_classification"];
 const workflowNumberFields = ["watchlist_rank"];
 const workflowBooleanFields = ["planned_trade", "direction_matched", "preferred_direction_matched", "planned_scenario_matched", "planned_long_scenario_enabled", "planned_short_scenario_enabled"];
+const quickReviewTextFields = ["review_note", "setup_grade", "execution_grade", "final_grade", "outcome_classification", "grade_explanation", "grading_version", "review_status"];
+const quickReviewJsonFields = ["quick_review_sequence", "quick_review_context", "quick_review_execution"];
 
 async function getCurrentUser(client = supabase) {
   const { data: userData, error: userError } = await client.auth.getUser();
@@ -170,7 +172,19 @@ export async function fetchTrades() {
     throw error;
   }
 
-  return Promise.all((data || []).map(mapTradeRow));
+  const rows = await Promise.all((data || []).map(mapTradeRow));
+  if (!rows.length) return rows;
+  const ids = rows.map((row) => row.id);
+  const [{ data: setups, error: setupError }, { data: confluences, error: confluenceError }] = await Promise.all([
+    supabase.from("trade_setup_tags").select("trade_id,tag_id,review_setup_tags(name)").eq("user_id", user.id).in("trade_id", ids),
+    supabase.from("trade_confluence_tags").select("trade_id,tag_id,review_confluence_tags(name)").eq("user_id", user.id).in("trade_id", ids),
+  ]);
+  if (setupError) throw setupError;
+  if (confluenceError) throw confluenceError;
+  return rows.map((row) => ({ ...row,
+    setupTags: (setups || []).filter((link) => link.trade_id === row.id).map((link) => ({ id: link.tag_id, name: link.review_setup_tags?.name })).filter((tag) => tag.name),
+    confluenceTags: (confluences || []).filter((link) => link.trade_id === row.id).map((link) => ({ id: link.tag_id, name: link.review_confluence_tags?.name })).filter((tag) => tag.name),
+  }));
 }
 
 function normalizeDuplicateValue(value) {
@@ -289,6 +303,9 @@ export function mapTradeToInsertRow(trade, userId) {
   workflowBooleanFields.forEach((field) => { if (field in trade) row[field] = trade[field] == null ? null : Boolean(trade[field]); });
   if ("watchlist_item_id" in trade) row.watchlist_item_id = trade.watchlist_item_id || null;
   if ("review_completed_at" in trade) row.review_completed_at = trade.review_completed_at || null;
+  quickReviewTextFields.forEach((field) => { if (field in trade) row[field] = trade[field] || null; });
+  quickReviewJsonFields.forEach((field) => { if (field in trade) row[field] = trade[field] || null; });
+  if ("quick_review_completed_at" in trade) row.quick_review_completed_at = trade.quick_review_completed_at || null;
   if (row.next_level_price != null) Object.assign(row, deriveRoomFields(row));
 
   return row;
@@ -400,6 +417,9 @@ export function buildTradeUpdatePayload(updates = {}) {
   workflowBooleanFields.forEach((field) => { if (field in updates) payload[field] = updates[field] == null ? null : Boolean(updates[field]); });
   if ("watchlist_item_id" in updates) payload.watchlist_item_id = updates.watchlist_item_id || null;
   if ("review_completed_at" in updates) payload.review_completed_at = updates.review_completed_at || null;
+  quickReviewTextFields.forEach((field) => { if (field in updates) payload[field] = updates[field] || null; });
+  quickReviewJsonFields.forEach((field) => { if (field in updates) payload[field] = updates[field] || null; });
+  if ("quick_review_completed_at" in updates) payload.quick_review_completed_at = updates.quick_review_completed_at || null;
 
   payload.updated_at = new Date().toISOString();
 
@@ -433,8 +453,8 @@ export async function updateTrade(tradeId, updates = {}) {
     Object.assign(normalizedUpdates, deriveRoomFields({ ...existingTrade, ...normalizedUpdates }));
   }
   const review = getTradeReviewCompleteness({ ...existingTrade, ...normalizedUpdates });
-  normalizedUpdates.review_status = review.status;
-  normalizedUpdates.review_completed_at = review.status === "Review Complete"
+  normalizedUpdates.review_status = normalizedUpdates.review_status || review.status;
+  normalizedUpdates.review_completed_at = normalizedUpdates.review_status === "Reviewed" || normalizedUpdates.review_status === "Review Complete"
     ? existingTrade.review_completed_at || new Date().toISOString()
     : null;
   const payload = buildTradeUpdatePayload(normalizedUpdates);
@@ -475,6 +495,18 @@ export async function updateTrade(tradeId, updates = {}) {
     throw error;
   }
 
+  async function replaceTagLinks(table, tagIds) {
+    if (!Array.isArray(tagIds)) return;
+    const { error: removeError } = await supabase.from(table).delete().eq("trade_id", tradeId).eq("user_id", user.id);
+    if (removeError) throw removeError;
+    if (tagIds.length) {
+      const { error: insertError } = await supabase.from(table).insert(tagIds.map((tagId) => ({ trade_id: tradeId, tag_id: tagId, user_id: user.id })));
+      if (insertError) throw insertError;
+    }
+  }
+  await replaceTagLinks("trade_setup_tags", updates.setup_tag_ids);
+  await replaceTagLinks("trade_confluence_tags", updates.confluence_tag_ids);
+
   const previousPath = existingTrade.screenshot_path;
   if ((uploadedPath || updates.removeScreenshot) && previousPath && previousPath !== uploadedPath) {
     await removeTradeScreenshot(previousPath).catch((cleanupError) => {
@@ -482,7 +514,11 @@ export async function updateTrade(tradeId, updates = {}) {
     });
   }
 
-  return mapTradeRow(data);
+  const mapped = await mapTradeRow(data);
+  return { ...mapped,
+    setupTags: Array.isArray(updates.setup_tag_ids) ? (updates.setup_tags || []) : undefined,
+    confluenceTags: Array.isArray(updates.confluence_tag_ids) ? (updates.confluence_tags || []) : undefined,
+  };
 }
 
 export async function deleteTrade(tradeId) {

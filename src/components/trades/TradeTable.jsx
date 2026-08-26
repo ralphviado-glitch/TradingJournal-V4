@@ -243,10 +243,10 @@ function TradeTable({
                 <td>{formatCurrency(trade.gross_pnl ?? trade.pnl)}</td>
                 <td>{formatCurrency(trade.fees)}</td>
                 <td className={Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}>{formatCurrency(getAuthoritativePnl(trade))}</td>
-                <td>{trade.setup || "Unclassified"}</td>
-                <td>{trade.grade || "-"}</td>
+                <td>{trade.setupTags?.length ? `${trade.setupTags[0].name}${trade.setupTags.length > 1 ? ` +${trade.setupTags.length - 1}` : ""}` : trade.setup || "Unclassified"}</td>
+                <td>{trade.final_grade || trade.grade || "-"}</td>
                 <td>{trade.exit_efficiency == null ? "-" : `${trade.exit_efficiency}%`}</td>
-                <td><Badge tone={getTradeReviewCompleteness(trade).status === "Review Complete" ? "profit" : "warning"}>{getTradeReviewCompleteness(trade).status === "Partially Reviewed" ? "Partial" : getTradeReviewCompleteness(trade).status.replace("Review ", "")}</Badge></td>
+                <td><Badge tone={["Reviewed","Review Complete"].includes(getTradeReviewCompleteness(trade).status) ? "profit" : "warning"}>{getTradeReviewCompleteness(trade).status}</Badge>{trade.outcome_classification ? <small>{trade.outcome_classification}</small> : null}</td>
                 <td>
                   {trade.screenshot ? (
                     <img src={trade.screenshot} alt="Trade screenshot" className="trade-screenshot-thumb" />
@@ -286,7 +286,8 @@ function TradeTable({
             <div className="trade-card-metrics">
               <p><strong>Direction</strong><span>{trade.direction || "N/A"}</span></p>
               <p><strong>PnL</strong><span>{trade.pnl}</span></p>
-              <p><strong>Setup</strong><span>{trade.setup || "Unclassified"}</span></p>
+              <p><strong>Setup</strong><span>{trade.setupTags?.map((tag)=>tag.name).join(", ") || trade.setup || "Unclassified"}</span></p>
+              <p><strong>Grade</strong><span>{trade.final_grade || trade.grade || "-"} · {trade.outcome_classification || "Not graded"}</span></p>
               <p><strong>Review</strong><span>{getTradeReviewCompleteness(trade).percentage}% · {getTradeReviewCompleteness(trade).status}</span></p>
             </div>
             <div className="watchlist-actions">
