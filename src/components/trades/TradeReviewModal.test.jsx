@@ -30,10 +30,6 @@ describe("TradeReviewModal", () => {
     expect(html).toContain("AMD LONG");
     expect(html).toContain("2025-11-12");
     expect(html).toContain("+$79.80");
-    expect(html).toContain("Psychology / Classification");
-    expect(html).toContain("Break &amp; Retest Review");
-    expect(html).toContain("Good discipline");
-    expect(html).toContain("Detailed Review");
     expect(html).toContain("Quick Review");
     expect(html).toContain("Save Review");
     expect(html).toContain("review-tag-grid");
@@ -50,7 +46,10 @@ describe("TradeReviewModal", () => {
     expect(html).toContain("review-evidence-grid");
     expect(html).toContain("Screenshots");
     expect(html).toContain("Order Breakdown");
-    expect(html).toContain("No watchlist match.");
+    expect(html).toContain("Cancel");
+    expect(html).not.toContain("Detailed Review");
+    expect(html).not.toContain("Automatic Execution Summary");
+    expect(html).not.toContain("Workflow Status");
   });
 
   it("renders a different trade when selection changes", () => {

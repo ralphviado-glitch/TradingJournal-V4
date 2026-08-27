@@ -12,26 +12,24 @@ function OrderBreakdown({ orders }) {
       <table className="trade-table">
         <thead>
           <tr>
-            <th>Date</th>
             <th>Time</th>
             <th>Side</th>
-            <th>Quantity</th>
+            <th>QTY</th>
             <th>Price</th>
-            <th>Commission</th>
-            <th>Event</th>
+            <th>Comms</th>
+            <th>P&amp;L</th>
           </tr>
         </thead>
 
         <tbody>
           {orders.map((order, index) => (
             <tr key={index}>
-              <td>{order.date}</td>
               <td>{order.time}</td>
               <td>{order.side}</td>
-              <td>{order.quantity}</td>
-              <td>{order.price}</td>
-              <td>{order.commission == null ? "N/A" : `$${Number(order.commission).toFixed(2)}`}</td>
-              <td>{order.event}</td>
+              <td className="numeric">{order.quantity}</td>
+              <td className="numeric">{order.price}</td>
+              <td className="numeric">{order.commission == null ? "N/A" : `$${Number(order.commission).toFixed(2)}`}</td>
+              <td className="numeric">{order.pnl == null && order.realized_pnl == null ? "—" : `$${Number(order.pnl ?? order.realized_pnl).toFixed(2)}`}</td>
             </tr>
           ))}
         </tbody>

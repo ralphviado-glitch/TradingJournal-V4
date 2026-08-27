@@ -2249,3 +2249,20 @@ fieldset {
 @media(max-width:900px){.execution-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.review-evidence-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.trade-review-modal{width:100%;max-height:100dvh}.review-tag-grid,.context-grid,.grade-values{grid-template-columns:1fr}.sequence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.execution-grid{grid-template-columns:1fr}.review-evidence-grid .chart-card{overflow:visible}.review-evidence-grid .trade-table{min-width:0}}
 @media(max-width:420px){.sequence-grid{grid-template-columns:1fr}}
+
+/* V1.3.3 primary Quick Review controls and compact evidence table */
+.quick-review input:not([type="checkbox"]),.quick-review textarea,.quick-review select{box-sizing:border-box;width:100%;min-width:0;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary);color:var(--text-primary);padding:.6rem .7rem;font:inherit;transition:border-color .15s,box-shadow .15s,background .15s}
+.quick-review input::placeholder,.quick-review textarea::placeholder{color:var(--text-secondary);opacity:.75}
+.quick-review input:not([type="checkbox"]):hover,.quick-review textarea:hover,.quick-review select:hover{border-color:var(--text-secondary);background:var(--surface-elevated)}
+.quick-review input:not([type="checkbox"]):focus-visible,.quick-review textarea:focus-visible,.quick-review select:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.quick-review input:disabled,.quick-review textarea:disabled,.quick-review select:disabled{cursor:not-allowed;opacity:.55;background:var(--bg-primary)}
+.review-tag-option{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;background:var(--surface-elevated);overflow:hidden}
+.review-tag-option label{border:0;padding:.45rem .35rem .45rem .7rem}
+.archive-tag-button{align-self:stretch;border:0;border-left:1px solid var(--border);background:transparent;color:var(--text-secondary);padding:0 .55rem;cursor:pointer;font-size:1rem}
+.archive-tag-button:hover,.archive-tag-button:focus-visible{background:var(--loss-bg,#492121);color:var(--loss,#ff7474);outline:0}
+.review-evidence-grid .chart-card{overflow:hidden}
+.review-evidence-grid .trade-table{width:100%;min-width:0;table-layout:fixed}
+.order-breakdown-table{width:100%;overflow:hidden}
+.order-breakdown-table th,.order-breakdown-table td{padding:.45rem .35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-breakdown-table .numeric{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.order-breakdown-table{display:none}.order-breakdown-cards{display:grid}}
