@@ -1911,7 +1911,7 @@ fieldset {
   }
 }
 
-.trade-table .col-date{width:9%}.trade-table .col-ticker{width:6%}.trade-table .col-direction{width:7%}.trade-table .col-result{width:7%}.trade-table .col-number{width:6%}.trade-table .col-shares{width:5%}.trade-table .col-pnl{width:9%}.trade-table .col-setup{width:11%}.trade-table .col-grade{width:5%}.trade-table .col-efficiency{width:8%}.trade-table .col-review{width:12%}.trade-table .col-actions{width:9%}
+.trade-table .col-date{width:9%}.trade-table .col-ticker{width:7%}.trade-table .col-direction{width:8%}.trade-table .col-result{width:8%}.trade-table .col-number{width:7%}.trade-table .col-shares{width:6%}.trade-table .col-pnl{width:10%}.trade-table .col-setup{width:12%}.trade-table .col-grade{width:6%}.trade-table .col-efficiency{width:9%}.trade-table .col-review{width:7%}.trade-table .col-actions{width:5%}
 .trade-table .numeric{text-align:right;font-variant-numeric:tabular-nums}
 .trade-table .truncate-cell,.trade-table .compact-review-status{overflow:hidden;text-overflow:ellipsis}
 .trade-table .compact-review-status .ui-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:.2rem .4rem}

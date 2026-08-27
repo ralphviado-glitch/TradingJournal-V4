@@ -15,12 +15,12 @@ import {
 } from "../../lib/breakRetestReview";
 import { getTradeReviewCompleteness } from "../../lib/workflow/reviewCompleteness";
 import { getAuthoritativePnl } from "../../lib/tradePnl";
+import { formatJournalPrice, journalReviewLabel, journalReviewStatus } from "../../lib/journalPresentation";
 
 const formatCurrency = (value) => value == null || !Number.isFinite(Number(value)) ? "N/A" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(Number(value));
 
 function TradeActionIcon({ name }) {
   if (name === "view") return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>;
-  if (name === "edit") return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6-3.2-3.2L5 15.8 4 20Z"/><path d="m13.8 7 3.2 3.2"/></svg>;
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></svg>;
 }
 
@@ -119,11 +119,6 @@ function TradeTable({
 }) {
   const [editingTrade, setEditingTrade] = useState(requestedEditTrade || null);
   const [editDraft, setEditDraft] = useState(() => requestedEditTrade ? createEditDraft(requestedEditTrade) : null);
-
-  const handleEditClick = (trade) => {
-    setEditingTrade(trade);
-    setEditDraft(createEditDraft(trade));
-  };
 
   const closeEditModal = useCallback(() => {
     if (savingTradeId) return;
@@ -226,7 +221,7 @@ function TradeTable({
               <th>Entry</th>
               <th>Exit</th>
               <th>Shares</th>
-              <th>Net P&amp;L</th>
+              <th className="numeric">Net P&amp;L</th>
               <th>Setup</th>
               <th>Grade</th>
               <th>Exit Efficiency</th>
@@ -241,18 +236,17 @@ function TradeTable({
                 <td><strong>{trade.ticker}</strong></td>
                 <td>{trade.direction || "N/A"}</td>
                 <td>{renderResult(trade)}</td>
-                <td>{trade.entry_price}</td>
-                <td>{trade.exit_price}</td>
+                <td className="numeric">{formatJournalPrice(trade.entry_price)}</td>
+                <td className="numeric">{formatJournalPrice(trade.exit_price)}</td>
                 <td>{trade.shares}</td>
                 <td className={`numeric ${Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}`}>{formatCurrency(getAuthoritativePnl(trade))}</td>
                 <td className="truncate-cell" title={trade.setupTags?.map((tag)=>tag.name).join(", ") || trade.setup || "Unclassified"}>{trade.setupTags?.length ? `${trade.setupTags[0].name}${trade.setupTags.length > 1 ? ` +${trade.setupTags.length - 1}` : ""}` : trade.setup || "Unclassified"}</td>
                 <td>{trade.final_grade || trade.grade || "-"}</td>
                 <td>{trade.exit_efficiency == null ? "-" : `${trade.exit_efficiency}%`}</td>
-                <td className="compact-review-status" title={`${getTradeReviewCompleteness(trade).status}${trade.outcome_classification ? ` · ${trade.outcome_classification}` : ""}`}><Badge tone={["Reviewed","Review Complete"].includes(getTradeReviewCompleteness(trade).status) ? "profit" : "warning"}>{getTradeReviewCompleteness(trade).status}</Badge></td>
+                <td className="compact-review-status" title={`${journalReviewStatus(trade,getTradeReviewCompleteness(trade).status)}${trade.outcome_classification ? ` · ${trade.outcome_classification}` : ""}`}><Badge tone={["Reviewed","Review Complete"].includes(journalReviewStatus(trade,getTradeReviewCompleteness(trade).status)) ? "profit" : "warning"}>{journalReviewLabel(journalReviewStatus(trade,getTradeReviewCompleteness(trade).status))}</Badge></td>
                 <td>
                   <div className="table-actions">
                     <Button className="trade-action-icon" variant="secondary" title={`View ${trade.ticker} trade`} aria-label={`View ${trade.ticker} trade`} onClick={() => onSelectTrade(trade)}><TradeActionIcon name="view" /></Button>
-                    <Button className="trade-action-icon" variant="secondary" title={`Edit ${trade.ticker} trade details`} aria-label={`Edit ${trade.ticker} trade details`} onClick={() => handleEditClick(trade)}><TradeActionIcon name="edit" /></Button>
                     <Button className="trade-action-icon"
                       variant="danger"
                       disabled={deletingTradeId === trade.id}
@@ -285,11 +279,10 @@ function TradeTable({
               <p><strong>PnL</strong><span>{trade.pnl}</span></p>
               <p><strong>Setup</strong><span>{trade.setupTags?.map((tag)=>tag.name).join(", ") || trade.setup || "Unclassified"}</span></p>
               <p><strong>Grade</strong><span>{trade.final_grade || trade.grade || "-"} · {trade.outcome_classification || "Not graded"}</span></p>
-              <p><strong>Review</strong><span>{getTradeReviewCompleteness(trade).percentage}% · {getTradeReviewCompleteness(trade).status}</span></p>
+              <p><strong>Review</strong><span>{journalReviewLabel(journalReviewStatus(trade,getTradeReviewCompleteness(trade).status))} · {getTradeReviewCompleteness(trade).percentage}%</span></p>
             </div>
             <div className="watchlist-actions">
               <Button variant="secondary" onClick={() => onSelectTrade(trade)}>Review</Button>
-              <Button variant="secondary" onClick={() => handleEditClick(trade)}>Edit</Button>
               <Button
                 variant="danger"
                 isLoading={deletingTradeId === trade.id}
