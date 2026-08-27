@@ -855,26 +855,26 @@ fieldset {
 
 .trade-table-wrapper {
   margin: 24px auto;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  overflow: auto;
+  overflow: visible;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
 }
 
 .trade-table {
-  width: auto;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 0;
   width: 100%;
+  table-layout: fixed;
   font-size: var(--font-sm);
 }
 
 .trade-table th,
 .trade-table td {
   border-bottom: 1px solid var(--border);
-  padding: 10px;
+  padding: 7px 5px;
   text-align: left;
   white-space: nowrap;
   vertical-align: top;
@@ -1910,6 +1910,15 @@ fieldset {
     min-width: 0;
   }
 }
+
+.trade-table .col-date{width:9%}.trade-table .col-ticker{width:6%}.trade-table .col-direction{width:7%}.trade-table .col-result{width:7%}.trade-table .col-number{width:6%}.trade-table .col-shares{width:5%}.trade-table .col-pnl{width:9%}.trade-table .col-setup{width:11%}.trade-table .col-grade{width:5%}.trade-table .col-efficiency{width:8%}.trade-table .col-review{width:12%}.trade-table .col-actions{width:9%}
+.trade-table .numeric{text-align:right;font-variant-numeric:tabular-nums}
+.trade-table .truncate-cell,.trade-table .compact-review-status{overflow:hidden;text-overflow:ellipsis}
+.trade-table .compact-review-status .ui-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:.2rem .4rem}
+.table-actions{flex-wrap:nowrap;gap:4px;justify-content:flex-end}
+.trade-action-icon{display:inline-grid;place-items:center;width:34px;height:34px;min-width:34px;padding:0;border-radius:var(--radius-sm)}
+.trade-action-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trade-action-icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* V1.1 performance workspace */
 .journal-filter-toolbar { display: grid; grid-template-columns: minmax(150px, 1.2fr) repeat(4, minmax(130px, 1fr)) auto; gap: var(--space-3); align-items: end; margin-top: var(--space-4); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }

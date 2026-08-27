@@ -18,6 +18,12 @@ import { getAuthoritativePnl } from "../../lib/tradePnl";
 
 const formatCurrency = (value) => value == null || !Number.isFinite(Number(value)) ? "N/A" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(Number(value));
 
+function TradeActionIcon({ name }) {
+  if (name === "view") return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>;
+  if (name === "edit") return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6-3.2-3.2L5 15.8 4 20Z"/><path d="m13.8 7 3.2 3.2"/></svg>;
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></svg>;
+}
+
 const classificationFields = [
   ["setup", "Setup", "text"],
   ["grade", "Grade", "select"],
@@ -210,6 +216,7 @@ function TradeTable({
     <>
       <div className="trade-table-wrapper">
         <table className="trade-table">
+          <colgroup><col className="col-date"/><col className="col-ticker"/><col className="col-direction"/><col className="col-result"/><col className="col-number"/><col className="col-number"/><col className="col-shares"/><col className="col-pnl"/><col className="col-setup"/><col className="col-grade"/><col className="col-efficiency"/><col className="col-review"/><col className="col-actions"/></colgroup>
           <thead>
             <tr>
               <th>Date</th>
@@ -219,51 +226,41 @@ function TradeTable({
               <th>Entry</th>
               <th>Exit</th>
               <th>Shares</th>
-              <th>Gross P&amp;L</th>
-              <th>Fee</th>
               <th>Net P&amp;L</th>
               <th>Setup</th>
               <th>Grade</th>
               <th>Exit Efficiency</th>
               <th>Review</th>
-              <th>Screenshot</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {trades.map((trade) => (
               <tr key={trade.id}>
-                <td>{trade.date}</td>
+                <td title={trade.trade_date || trade.date}>{trade.trade_date || trade.date}</td>
                 <td><strong>{trade.ticker}</strong></td>
                 <td>{trade.direction || "N/A"}</td>
                 <td>{renderResult(trade)}</td>
                 <td>{trade.entry_price}</td>
                 <td>{trade.exit_price}</td>
                 <td>{trade.shares}</td>
-                <td>{formatCurrency(trade.gross_pnl ?? trade.pnl)}</td>
-                <td>{formatCurrency(trade.fees)}</td>
-                <td className={Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}>{formatCurrency(getAuthoritativePnl(trade))}</td>
-                <td>{trade.setupTags?.length ? `${trade.setupTags[0].name}${trade.setupTags.length > 1 ? ` +${trade.setupTags.length - 1}` : ""}` : trade.setup || "Unclassified"}</td>
+                <td className={`numeric ${Number(getAuthoritativePnl(trade) || 0) >= 0 ? "result-win" : "result-loss"}`}>{formatCurrency(getAuthoritativePnl(trade))}</td>
+                <td className="truncate-cell" title={trade.setupTags?.map((tag)=>tag.name).join(", ") || trade.setup || "Unclassified"}>{trade.setupTags?.length ? `${trade.setupTags[0].name}${trade.setupTags.length > 1 ? ` +${trade.setupTags.length - 1}` : ""}` : trade.setup || "Unclassified"}</td>
                 <td>{trade.final_grade || trade.grade || "-"}</td>
                 <td>{trade.exit_efficiency == null ? "-" : `${trade.exit_efficiency}%`}</td>
-                <td><Badge tone={["Reviewed","Review Complete"].includes(getTradeReviewCompleteness(trade).status) ? "profit" : "warning"}>{getTradeReviewCompleteness(trade).status}</Badge>{trade.outcome_classification ? <small>{trade.outcome_classification}</small> : null}</td>
-                <td>
-                  {trade.screenshot ? (
-                    <img src={trade.screenshot} alt="Trade screenshot" className="trade-screenshot-thumb" />
-                  ) : (
-                    "-"
-                  )}
-                </td>
+                <td className="compact-review-status" title={`${getTradeReviewCompleteness(trade).status}${trade.outcome_classification ? ` · ${trade.outcome_classification}` : ""}`}><Badge tone={["Reviewed","Review Complete"].includes(getTradeReviewCompleteness(trade).status) ? "profit" : "warning"}>{getTradeReviewCompleteness(trade).status}</Badge></td>
                 <td>
                   <div className="table-actions">
-                    <Button variant="secondary" onClick={() => onSelectTrade(trade)}>View</Button>
-                    <Button variant="secondary" onClick={() => handleEditClick(trade)}>Edit</Button>
-                    <Button
+                    <Button className="trade-action-icon" variant="secondary" title={`View ${trade.ticker} trade`} aria-label={`View ${trade.ticker} trade`} onClick={() => onSelectTrade(trade)}><TradeActionIcon name="view" /></Button>
+                    <Button className="trade-action-icon" variant="secondary" title={`Edit ${trade.ticker} trade details`} aria-label={`Edit ${trade.ticker} trade details`} onClick={() => handleEditClick(trade)}><TradeActionIcon name="edit" /></Button>
+                    <Button className="trade-action-icon"
                       variant="danger"
-                      isLoading={deletingTradeId === trade.id}
+                      disabled={deletingTradeId === trade.id}
+                      title={`Delete ${trade.ticker} trade`}
+                      aria-label={`Delete ${trade.ticker} trade`}
                       onClick={() => onDeleteTrade(trade.id)}
                     >
-                      Delete
+                      <TradeActionIcon name="delete" />
                     </Button>
                   </div>
                 </td>
