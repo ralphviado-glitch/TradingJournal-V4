@@ -6,7 +6,7 @@ export const INDEX_ALIGNMENTS = ["Aligned", "Neutral", "Against"];
 export const MARKET_ALIGNMENTS = ["Strong", "Mixed", "Against"];
 export const ENTRY_TRIGGERS = ["Retest Hold", "Reclaim", "Confirmation Candle", "Pause / Continuation", "Immediate Break", "Anticipation", "Other"];
 export const ENTRY_CONFIRMATIONS = ["Strong", "Acceptable", "Weak", "None"];
-export const RULE_VIOLATION_OPTIONS = ["Anticipation Entry", "Chased Entry", "No Displacement", "No Proper Retest", "Entered Before 5 Minutes", "Against QQQ", "Against SPY", "No Room to Next Level", "Entered Extended", "Poor Stop Placement", "Oversized Position", "Broke Risk Limit", "Early Exit", "Moved Stop", "FOMO", "Revenge Trade", "Other"];
+export const RULE_VIOLATION_OPTIONS = HISTORICAL_RULE_VIOLATIONS;
 
 export const THREE_STATE_FIELDS = ["break_retest_setup", "displacement_present", "retest_present", "volume_confirmation", "room_to_next_level", "extended_before_entry", "entered_after_first_5min", "first_5min_break"];
 
@@ -87,8 +87,10 @@ export function validateBreakRetestReview(updates = {}) {
     if (score === null || score < 0 || score > 100) throw new Error("Rule adherence score must be between 0 and 100.");
   }
   if ("rule_violations" in updates) {
-    if (updates.rule_violations !== null && (!Array.isArray(updates.rule_violations) || updates.rule_violations.some((value) => !RULE_VIOLATION_OPTIONS.includes(value)))) {
+    const normalized = normalizeRuleViolations(updates.rule_violations);
+    if (normalized.some((value) => !PERSISTED_RULE_VIOLATIONS.includes(value))) {
       throw new Error("Invalid rule violations.");
     }
   }
 }
+import { HISTORICAL_RULE_VIOLATIONS, normalizeRuleViolations, PERSISTED_RULE_VIOLATIONS } from "./ruleViolations";

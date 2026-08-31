@@ -29,6 +29,8 @@ describe("Phase 6 quick review", () => {
     const draft = createQuickReviewDraft(baseTrade);
     const completedDraft = { ...draft, setupTagIds: ["tag-1"], sequence: Object.fromEntries(Object.keys(draft.sequence).map((stage) => [stage, "met"])), marketContext: "aligned", roomQuality: "clear", plannedLevel: "yes", validEntryTrigger: "yes", stopFollowed: "yes", riskFollowed: "yes", managementFollowed: "yes", exitPlanFollowed: "yes", ruleViolations: ["None"] };
     expect(buildQuickReviewPayload(completedDraft, baseTrade).review_status).toBe("Review Complete");
+    expect(buildQuickReviewPayload(completedDraft, baseTrade).rule_violations).toEqual([]);
+    expect(buildQuickReviewPayload({ ...completedDraft, ruleViolations: ["Chased", "FOMO"] }, baseTrade).rule_violations).toEqual(["Chased", "FOMO"]);
     expect(buildQuickReviewPayload(draft, baseTrade).review_status).toBe("Partially Reviewed");
   });
 

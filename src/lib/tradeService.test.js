@@ -100,9 +100,9 @@ describe("Phase 3C persistence", () => {
     });
   });
 
-  it("keeps cleared Phase 3C values nullable", () => {
+  it("keeps cleared Phase 3C scalar values nullable and violations canonical", () => {
     expect(buildTradeUpdatePayload({ entry_trigger: "", next_level_price: "", entered_after_first_5min: "unknown", rule_violations: null })).toMatchObject({
-      entry_trigger: null, next_level_price: null, entered_after_first_5min: null, rule_violations: null,
+      entry_trigger: null, next_level_price: null, entered_after_first_5min: null, rule_violations: [],
     });
   });
 });

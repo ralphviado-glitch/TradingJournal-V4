@@ -10,6 +10,7 @@ import { deriveRoomFields, normalizeThreeState, THREE_STATE_FIELDS, validateBrea
 import { getTradeReviewCompleteness } from "./workflow/reviewCompleteness";
 import { validateWorkflowStatuses } from "./workflow/workflowStatus";
 import { applyFees } from "./tradePnl";
+import { normalizeRuleViolations } from "./ruleViolations";
 
 const executionAnalysisFields = [
   "planned_entry",
@@ -424,6 +425,7 @@ export async function insertTrades(trades = []) {
 }
 
 export function buildTradeUpdatePayload(updates = {}) {
+  if ("rule_violations" in updates) updates = { ...updates, rule_violations: normalizeRuleViolations(updates.rule_violations) };
   validateTradeManagement(updates);
   validateBreakRetestReview(updates);
   validateWorkflowStatuses(updates);
