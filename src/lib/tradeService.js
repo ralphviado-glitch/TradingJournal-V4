@@ -187,6 +187,61 @@ export async function fetchTrades() {
   }));
 }
 
+// Trade screenshots share the existing private bucket and user/trade folder layout.
+// The folder is the association, so historical singular screenshot_path rows and
+// newly uploaded multiple screenshots can be presented together without schema changes.
+export async function fetchTradeScreenshots(tradeId) {
+  const user = await getCurrentUser();
+  const folder = `${user.id}/${tradeId}`;
+  const { data, error } = await supabase.storage.from("trade-screenshots").list(folder, {
+    limit: 100,
+    sortBy: { column: "created_at", order: "asc" },
+  });
+  if (error) throw error;
+  return Promise.all((data || []).filter((item) => item.name && item.id).map(async (item) => {
+    const path = `${folder}/${item.name}`;
+    return { path, url: await getTradeScreenshotUrl(path), name: item.name };
+  }));
+}
+
+export async function addTradeScreenshot(tradeId, file) {
+  const user = await getCurrentUser();
+  const path = await uploadTradeScreenshot(file, user.id, tradeId);
+  const { data: trade, error: fetchError } = await supabase.from("trades").select("screenshot_path").eq("id", tradeId).eq("user_id", user.id).single();
+  if (fetchError) console.warn("Screenshot uploaded, but primary screenshot pointer could not be read:", fetchError);
+  if (trade && !trade.screenshot_path) {
+    const { error } = await supabase.from("trades").update({ screenshot_path: path, screenshot_url: null, updated_at: new Date().toISOString() }).eq("id", tradeId).eq("user_id", user.id);
+    // Keep the successfully uploaded object: folder discovery means it remains
+    // attached even if this compatibility pointer cannot be updated.
+    if (error) console.warn("Screenshot uploaded, but primary screenshot pointer was not updated:", error);
+  }
+  return { path, url: await getTradeScreenshotUrl(path), name: file.name };
+}
+
+export async function deleteTradeScreenshot(tradeId, path) {
+  const user = await getCurrentUser();
+  const ownedPrefix = `${user.id}/${tradeId}/`;
+  const legacyReference = /^https?:\/\//i.test(path || "") || String(path || "").startsWith("data:image/");
+  if (!legacyReference && (!path?.startsWith(ownedPrefix) || path.includes(".."))) throw new Error("Invalid screenshot path.");
+  const { data: trade, error: fetchError } = await supabase.from("trades").select("screenshot_path,screenshot_url").eq("id", tradeId).eq("user_id", user.id).single();
+  if (fetchError) throw fetchError;
+  if (legacyReference) {
+    const payload = {};
+    if (trade.screenshot_path === path) payload.screenshot_path = null;
+    if (trade.screenshot_url === path) payload.screenshot_url = null;
+    if (!Object.keys(payload).length) throw new Error("Screenshot is not associated with this trade.");
+    const { error } = await supabase.from("trades").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", tradeId).eq("user_id", user.id);
+    if (error) throw error;
+    return;
+  }
+  await removeTradeScreenshot(path);
+  if (trade.screenshot_path === path) {
+    const remaining = await fetchTradeScreenshots(tradeId);
+    const { error } = await supabase.from("trades").update({ screenshot_path: remaining[0]?.path || null, screenshot_url: null, updated_at: new Date().toISOString() }).eq("id", tradeId).eq("user_id", user.id);
+    if (error) throw error;
+  }
+}
+
 function normalizeDuplicateValue(value) {
   if (value === null || value === undefined) {
     return "";

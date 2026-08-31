@@ -25,6 +25,13 @@ describe("Phase 6 quick review", () => {
     expect(getTradeReviewCompleteness({ ...baseTrade, ...payload }).status).toBe("Review Complete");
   });
 
+  it("persists completed and incomplete quick reviews using valid workflow values", () => {
+    const draft = createQuickReviewDraft(baseTrade);
+    const completedDraft = { ...draft, setupTagIds: ["tag-1"], sequence: Object.fromEntries(Object.keys(draft.sequence).map((stage) => [stage, "met"])), marketContext: "aligned", roomQuality: "clear", plannedLevel: "yes", validEntryTrigger: "yes", stopFollowed: "yes", riskFollowed: "yes", managementFollowed: "yes", exitPlanFollowed: "yes", ruleViolations: ["None"] };
+    expect(buildQuickReviewPayload(completedDraft, baseTrade).review_status).toBe("Review Complete");
+    expect(buildQuickReviewPayload(draft, baseTrade).review_status).toBe("Partially Reviewed");
+  });
+
   it("removes a completed trade from deterministic queue ordering", () => {
     const trades = [baseTrade, { ...baseTrade, id: "t2", entry_time: "10:00 AM" }];
     expect(buildReviewQueue(trades).map((trade) => trade.id)).toEqual(["t1", "t2"]);

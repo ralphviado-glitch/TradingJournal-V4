@@ -1,8 +1,8 @@
-import { useState } from "react";
 import Badge from "../ui/Badge";
 import Modal from "../ui/Modal";
 import OrderBreakdown from "./OrderBreakdown";
 import QuickReviewForm from "./QuickReviewForm";
+import QuickReviewScreenshots from "./QuickReviewScreenshots";
 
 function formatMoney(value) {
   const number = Number(value);
@@ -21,7 +21,6 @@ function TradeReviewModal({
   trade, onClose,
   nextTrade, onNextTrade, onSaveReview, isSavingTrade,
 }) {
-  const [showScreenshot, setShowScreenshot] = useState(false);
   if (!trade) return null;
   const pnl = Number(trade.pnl || 0);
   const result = pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "Breakeven";
@@ -35,7 +34,7 @@ function TradeReviewModal({
           <div className="review-badges">
             <Badge tone={trade.direction === "Short" ? "warning" : "neutral"}>{trade.direction || "N/A"}</Badge>
             <Badge tone={pnl > 0 ? "profit" : pnl < 0 ? "loss" : "warning"}>{result}</Badge>
-            <Badge tone={trade.review_status === "Reviewed" ? "profit" : "warning"}>{trade.review_status || "Not Reviewed"}</Badge>
+            <Badge tone={["Reviewed", "Review Complete"].includes(trade.review_status) ? "profit" : "warning"}>{trade.review_status || "Not Reviewed"}</Badge>
           </div>
         </div>
         <strong className={pnl >= 0 ? "result-win" : "result-loss"}>{formatMoney(pnl)}</strong>
@@ -50,10 +49,7 @@ function TradeReviewModal({
         isSaving={isSavingTrade}
       >
       <div className="review-evidence-grid">
-        <section className="review-detail-section" aria-labelledby="screenshot-heading">
-          <h3 id="screenshot-heading">Screenshots</h3>
-          {trade.screenshot ? <><button className="review-screenshot-button" type="button" onClick={() => setShowScreenshot((current) => !current)} aria-expanded={showScreenshot}><img src={trade.screenshot} alt={`${trade.ticker} trade screenshot`} /><span>{showScreenshot ? "Hide large preview" : "View large preview"}</span></button>{showScreenshot ? <div className="review-screenshot-preview"><img src={trade.screenshot} alt={`${trade.ticker} trade screenshot enlarged`} /></div> : null}</> : <p className="field-helper">No screenshot attached.</p>}
-        </section>
+        <QuickReviewScreenshots trade={trade} />
         <OrderBreakdown orders={trade.orders} />
       </div>
       </QuickReviewForm>

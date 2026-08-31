@@ -2150,6 +2150,12 @@ fieldset {
 .archive-scenario-toggle { width: 100%; min-height: 40px; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
 .screenshot-preview-modal { width: min(1100px, 100%); }
 .screenshot-preview-modal img { display: block; width: 100%; max-height: 78vh; object-fit: contain; }
+.quick-screenshot-grid { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: .8rem; }
+.quick-screenshot-item { position: relative; display: grid; gap: .3rem; }
+.quick-screenshot-item .review-screenshot-button { padding: 0; }
+.quick-screenshot-item .review-screenshot-button img { width: 112px; height: 72px; object-fit: cover; }
+.quick-screenshot-remove { border: 0; background: transparent; color: var(--danger); cursor: pointer; text-decoration: underline; }
+.quick-review-screenshots > .image-upload-button { display: inline-flex; margin-top: .25rem; }
 .plan-detail-grid section { padding: .8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .plan-detail-grid img { width: 100%; max-height: 280px; object-fit: contain; }
 .linked-plan-trade, .recent-trades-preview > p { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--border); }
